@@ -1,0 +1,3 @@
+queenbee==1.4.5
+pollination-sdk==0.2.0
+tabulate==0.8.6
