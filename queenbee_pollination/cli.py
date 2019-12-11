@@ -174,7 +174,7 @@ def pollination(ctx):
         click.echo(f"""
 Looks like this is your first time logging in.
 
-To interract with Pollination you need to save authentication credentials in {config_path}.
+To interract with Pollination you need to save authentication credentials in {config_path}
 
 This tool will walk you through this process:
         """)
@@ -189,11 +189,21 @@ This tool will walk you through this process:
         config[CONFIG_NAMESPACE]["api_token_id"] = api_token_id
         config[CONFIG_NAMESPACE]["api_token_secret"] = api_token_secret
         config[CONFIG_NAMESPACE]["api_access_token"] = ""
+        
+        ctx.obj['config'] = config
+        
+        login_user(ctx)
+
+        click.echo("")
+
+        click.echo("You can now run queenbee pollination commands as an authenticated user!")
+
+        click.echo(f"Check the and modify the config file at your own risk: {ctx.obj.get('config_path')}")
+        exit(0)
 
 
     ctx.obj['config'] = config
 
-    # login_user(ctx)
 
 @pollination.group()
 @click.version_option()
@@ -312,6 +322,11 @@ def list(ctx):
     try:
         sims = client.simulations.list()
         table = [[sim.id, sim.workflow_ref.name, sim.phase, sim.completed, sim.started_at, sim.finished_at] for sim in sims]
+
+
+        table.sort(key=lambda r: r[4], reverse=True)
+
+
         print(tabulate(table, headers=['ID', 'Workflow', 'Phase', 'Completed', 'Stated At', 'Finished At']))
     except ApiException as e:
         handle_api_error(ctx, e)
@@ -416,17 +431,16 @@ def resubmit(ctx, id):
 
 @simulations.command('logs')
 @click.option('-i', '--id', help='ID of the simulation your want to retrieve logs from', required=True)
-@click.option('-t', '--task', help='Name of the task within the simulation you want to retrieve logs from', required=True)
 @click.option('-f', '--folder', help='Folder path to save simulation logs to', required=False)
 @click.pass_context
-def logs(ctx, id, task, folder):
+def logs(ctx, id, folder):
     """get logs from the simulation"""
     login_user(ctx)
 
     client = ctx.obj.get('client')
 
     try:
-        response = client.simulations.get_simulation_logs(id, task)
+        response = client.simulations.get_simulation_logs(id)
     except ApiException as e:
         handle_api_error(ctx, e)
 
