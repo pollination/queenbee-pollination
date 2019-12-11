@@ -1,0 +1,21 @@
+name: CD
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    name: "Deploy to PyPi server"
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Publish package to TestPyPI
+      uses: pypa/gh-action-pypi-publish@master
+      with:
+        user: ${{ secrets.PYPI_USER }}
+        password: ${{ secrets.PYPI_PASSWORD }}
+        repository_url: https://some.private.repo.org/legacy/
+
+# Change values above once a private repo has been set up
