@@ -7,5 +7,5 @@ queenbee-pollination extends [queenbee](https://github.com/ladybug-tools/queenbe
 You can install this as a cli tool using the following command:
 
 ```console
-pip install queenbee_pollination[cli]
+pip install queenbee-pollination[cli]
 ```
