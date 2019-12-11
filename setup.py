@@ -14,10 +14,10 @@ setuptools.setup(
     setup_requires=['setuptools_scm'],
     author="Ladybug Tools",
     author_email="info@ladybug.tools",
-    description="queenbee-pollination extends queenbee classes to be translatable to Argo workflows",
+    description="queenbee-pollination extends queenbee to interact with the Pollination API",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/pollination/queenbee-argo",
+    url="https://github.com/pollination/queenbee-pollination",
     packages=setuptools.find_packages(exclude=["tests", "hack", "docs"]),
     install_requires=requirements,
     extras_require={
