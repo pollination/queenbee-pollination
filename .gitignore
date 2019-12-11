@@ -16,3 +16,5 @@ tox.ini
 venv
 
 tests/assets/temp/*.*
+build/
+dist/
