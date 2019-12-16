@@ -68,6 +68,7 @@ import json
 import yaml
 import tarfile
 
+import requests
 from tabulate import tabulate
 from queenbee.cli import Context
 from queenbee.schema.workflow import Workflow
@@ -480,6 +481,70 @@ def download(ctx, id, folder, artifact):
         os.remove(f'{folder}.tar.gz')
 
 
+@pollination.group()
+@click.version_option()
+@click.pass_context
+def artifacts(ctx):
+    """
+    pollination artifacts plugin
+    """
+
+@artifacts.command('list')
+@click.pass_context
+def list(ctx):
+    """list artifacts"""
+    login_user(ctx)
+    client = ctx.obj.get('client')
+
+    try:
+        artifacts = client.artifacts.list()
+
+        table = []
+
+        for artifact in artifacts:
+
+            if artifact.file_name != "":
+                table.append([artifact.file_name, artifact.key, artifact.size/1000000, artifact.last_modified])
+
+
+        table.sort(key=lambda r: r[1], reverse=False)
+
+
+        print(tabulate(table, headers=['Name', 'Path', 'Size (Mb)', 'Last Modified']))
+    except ApiException as e:
+        handle_api_error(ctx, e)
+
+
+
+@artifacts.command('upload')
+@click.option('-f', '--folder', help='Folder path to save simulation artifacts to', required=True)
+@click.option('-p', '--prefix', help='A prefix to use when uploading this folder to pollination storage')
+@click.pass_context
+def download(ctx, folder, prefix):
+    """upload artifacts"""
+    login_user(ctx)
+    client = ctx.obj.get('client')
+
+    if prefix is None:
+        prefix = ""
+
+    for root, subdirs, files in os.walk(folder):
+        for file in files:
+            if prefix is not None:
+                key = os.path.join(prefix, root, file)
+            else:
+                key = os.path.join(root, file)
+            
+            res = client.artifacts.create({'key': key})
+
+
+            # Demonstrate how another Python program can use the presigned URL to upload a file
+            with open(key, 'rb') as f:
+                files = {'file': (key, f)}
+                http_response = requests.post(res.url, data=res.fields, files=files)
+
+                if http_response.status_code == 204:
+                    print(f"Uploaded {key}")
 
 if __name__ == "__main__":
     pollination()

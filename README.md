@@ -157,3 +157,18 @@ e556c46e-f71e-4bd5-927b-f4ce6a1d1e73  hello-world                     Succeeded 
 ```console
 > queenbee pollination simulations get -i f01b6926-c953-4b4d-be7f-945aafa1ec5c -f dump.json
 ```
+
+## Artifacts
+
+You can also upload raw files to the Pollination storage bucket. These files will then be accessible to any simulation you run thereafter.
+
+Create a folder called `test` and place some files in it. You can then upload these files using the following command:
+
+```console
+> queenbee pollination artifacts upload -f test
+
+Uploaded test/file1.txt
+Uploaded test/file2.txt
+Uploaded test/file3.txt
+
+```

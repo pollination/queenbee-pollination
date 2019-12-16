@@ -2,7 +2,8 @@ from datetime import datetime
 from uuid import uuid4
 import json
 
-from pollination_sdk import Configuration, ApiClient, WorkflowsApi, SimulationsApi, AuthenticationApi, Token
+from pollination_sdk import Configuration, ApiClient, WorkflowsApi, \
+    SimulationsApi, AuthenticationApi, Token, ArtifactsApi
 import pollination_sdk
 from pollination_sdk.rest import ApiException
 from queenbee.schema.workflow import Workflow
@@ -48,3 +49,4 @@ class Client(object):
         self.auth = auth
         self.workflows = WorkflowsApi(ApiClient(config))
         self.simulations = SimulationsApi(ApiClient(config))
+        self.artifacts = ArtifactsApi(ApiClient(config))
