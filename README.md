@@ -138,66 +138,21 @@ e5fa5b0b-7253-47cd-a6a0-63b2f5249cf4  hello-world                     Succeeded 
 e556c46e-f71e-4bd5-927b-f4ce6a1d1e73  hello-world                     Succeeded  True         2019-12-11 07:49:39+00:00  2019-12-11 07:49:39+00:00
 ```
 
-6. Retrieve the logs from the latest ran workflow.
+6. Retrieve the logs from the latest ran workflow. The command below will download all logs into the `dump/logs/` folder.
 
 ```console
-> queenbee pollination simulations logs -i f01b6926-c953-4b4d-be7f-945aafa1ec5c
-
-
-Task Name: f01b6926-c953-4b4d-be7f-945aafa1ec5c.exclamate
-
- ___ 
-< ! >
- --- 
-    \
-     \
-      \     
-                    ##        .            
-              ## ## ##       ==            
-           ## ## ## ##      ===            
-       /""""""""""""""""___/ ===        
-  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~   
-       \______ o          __/            
-        \    \        __/             
-          \____\______/   
-
-Task Name: f01b6926-c953-4b4d-be7f-945aafa1ec5c.say-hello
-
- _______ 
-< hello >
- ------- 
-    \
-     \
-      \     
-                    ##        .            
-              ## ## ##       ==            
-           ## ## ## ##      ===            
-       /""""""""""""""""___/ ===        
-  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~   
-       \______ o          __/            
-        \    \        __/             
-          \____\______/   
-
-Task Name: f01b6926-c953-4b4d-be7f-945aafa1ec5c.say-world
-
- _______ 
-< world >
- ------- 
-    \
-     \
-      \     
-                    ##        .            
-              ## ## ##       ==            
-           ## ## ## ##      ===            
-       /""""""""""""""""___/ ===        
-  ~~~ {~~ ~~~~ ~~~ ~~~~ ~~ ~ /  ===- ~~~   
-       \______ o          __/            
-        \    \        __/             
-          \____\______/   
+> queenbee pollination simulations download -i f01b6926-c953-4b4d-be7f-945aafa1ec5c -f dump -a logs
 
 ```
 
-7. Inpect simulation metadata in detail. Get and save the simulation object into a file called `dump.json`
+7. Retrieve all persisted simulation data to a local folder called `sim-data`.
+
+```console
+> queenbee pollination simulations download -i f01b6926-c953-4b4d-be7f-945aafa1ec5c -f sim-data
+
+```
+
+8. Inpect simulation metadata in detail. Get and save the simulation object into a file called `dump.json`
 
 ```console
 > queenbee pollination simulations get -i f01b6926-c953-4b4d-be7f-945aafa1ec5c -f dump.json

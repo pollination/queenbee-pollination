@@ -66,6 +66,8 @@ from pathlib import Path
 import os
 import json
 import yaml
+import tarfile
+
 from tabulate import tabulate
 from queenbee.cli import Context
 from queenbee.schema.workflow import Workflow
@@ -429,41 +431,53 @@ def resubmit(ctx, id):
 
     click.echo(f"Succesfully created simulation: {response.id}")
 
-@simulations.command('logs')
-@click.option('-i', '--id', help='ID of the simulation your want to retrieve logs from', required=True)
-@click.option('-f', '--folder', help='Folder path to save simulation logs to', required=False)
+@simulations.command('download')
+@click.option('-i', '--id', help='ID of the simulation your want to retrieve artifacts from', required=True)
+@click.option('-f', '--folder', help='Folder path to save simulation artifacts to', required=True)
+@click.option('-a', '--artifact', help='Choose which artifacts to download. Will download all if not specified.', type=click.Choice(['inputs', 'outputs', 'logs'], case_sensitive=False))
 @click.pass_context
-def logs(ctx, id, folder):
-    """get logs from the simulation"""
+def download(ctx, id, folder, artifact):
+    """download simulation artifacts"""
     login_user(ctx)
 
     client = ctx.obj.get('client')
 
-    try:
-        response = client.simulations.get_simulation_logs(id)
-    except ApiException as e:
-        handle_api_error(ctx, e)
-
-    if folder is not None:
-        
-        for item in response:
-            log_folder = os.path.join(folder, item.task.display_name )
-            try:
-                os.makedirs(log_folder)
-            except:
-                pass
-            meta_path = os.path.join(log_folder, f'{item.task.id}.meta')
-            log_path = os.path.join(log_folder, f'{item.task.id}.log')
-            with open(log_path, 'w') as f:
-                f.write(item.logs)
-            with open(meta_path, 'w') as f:
-                task = client.simulations.api_client.sanitize_for_serialization(item.task.to_dict())
-                json.dump(task, f, indent=2)
+    if artifact is None:
+        artifacts = ['inputs', 'outputs', 'logs']
     else:
-        for item in response:
-            click.echo(f"Task Name: {item.task.name}")
-            click.echo("")
-            click.echo(item.logs)
+        artifacts = [artifact]
+
+    for a in artifacts:
+
+        if a == 'inputs':
+            try:
+                response = client.simulations.get_simulation_inputs(id, _preload_content=False)
+            except ApiException as e:
+                handle_api_error(ctx, e)
+
+        elif a == 'outputs':
+            try:
+                response = client.simulations.get_simulation_outputs(id, _preload_content=False)
+            except ApiException as e:
+                handle_api_error(ctx, e)
+
+        elif a == 'logs':
+            try:
+                response = client.simulations.get_simulation_logs(id, _preload_content=False)
+            except ApiException as e:
+                handle_api_error(ctx, e)
+
+        CHUNK = 16 * 1024
+        with open(f'{folder}.tar.gz', 'wb') as f:
+            while True:
+                chunk = response.read(CHUNK)
+                if not chunk:
+                    break
+                f.write(chunk)
+
+        tar = tarfile.open(name=f'{folder}.tar.gz')
+        tar.extractall(f'{folder}')
+        os.remove(f'{folder}.tar.gz')
 
 
 
