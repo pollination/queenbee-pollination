@@ -324,13 +324,13 @@ def list(ctx):
 
     try:
         sims = client.simulations.list()
-        table = [[sim.id, sim.workflow_ref.name, sim.phase, sim.completed, sim.started_at, sim.finished_at] for sim in sims]
+        table = [[sim.id, sim.workflow_ref.name, sim.status, sim.started_at, sim.finished_at] for sim in sims]
 
 
         table.sort(key=lambda r: r[4], reverse=True)
 
 
-        print(tabulate(table, headers=['ID', 'Workflow', 'Phase', 'Completed', 'Stated At', 'Finished At']))
+        print(tabulate(table, headers=['ID', 'Workflow', 'Status', 'Stated At', 'Finished At']))
     except ApiException as e:
         handle_api_error(ctx, e)
 
