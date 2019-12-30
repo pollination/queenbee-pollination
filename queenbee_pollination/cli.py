@@ -103,8 +103,8 @@ def login_with_api_token(config, config_path):
     api_token_secret = config[CONFIG_NAMESPACE]['api_token_secret']
     try:
         click.echo("Logging in using api tokens...")
-        client = Client(api_key_id=api_token_id, 
-            api_key_secret=api_token_secret, host=api_server)
+        client = Client(api_key_id=api_token_id,
+                        api_key_secret=api_token_secret, host=api_server)
 
         config[CONFIG_NAMESPACE]["api_access_token"] = client.config.access_token
         with open(config_path, 'w') as config_file:
@@ -117,16 +117,18 @@ def login_with_api_token(config, config_path):
     except Exception as e:
         raise click.UsageError(e)
 
+
 def login_with_access_token(config, config_path):
     api_server = config[CONFIG_NAMESPACE]['api_server']
     access_token = config[CONFIG_NAMESPACE]['api_access_token']
     try:
         return Client(access_token=access_token, host=api_server)
-    except ValueError as e:
+    except ValueError:
         click.echo("Invalid or Stale access token in config.")
 
         return login_with_api_token(config, config_path)
-        
+
+
 def login_user(ctx):
     config_path = ctx.obj.get("config_path")
     config = ctx.obj.get("config")
@@ -141,6 +143,7 @@ def login_user(ctx):
         client = login_with_access_token(config, config_path)
 
     ctx.obj['client'] = client
+
 
 def handle_api_error(ctx, error):
     if error.status == 401:
@@ -163,28 +166,28 @@ def pollination(ctx):
     """
     ctx.obj = {}
 
-    home = str(Path.home())
-    config_path = os.path.join(home, CONFIG_ROOT_FILE_NAME)
-    
-    ctx.obj['config_path'] = config_path
+    config_path = Path.home() / CONFIG_ROOT_FILE_NAME
+
+    ctx.obj['config_path'] = config_path.as_posix()
 
     config = configparser.ConfigParser()
-    config.read(config_path)
+    config.read(config_path.as_posix())
 
     try:
         namespace_config = config.options(CONFIG_NAMESPACE)
-    except configparser.NoSectionError as e:
+    except configparser.NoSectionError:
         click.echo(f"""
 Looks like this is your first time logging in.
 
-To interract with Pollination you need to save authentication credentials in {config_path}
+To interract with Pollination you need to save authentication credentials in {config_path.as_posix()}
 
 This tool will walk you through this process:
         """)
 
         api_server = DEFAULT_SERVER_ENDPOINT
         api_token_id = click.prompt("Enter your API Token ID")
-        api_token_secret = click.prompt("Enter your API Token Secret", hide_input=True)
+        api_token_secret = click.prompt(
+            "Enter your API Token Secret", hide_input=True)
         api_access_token = None
 
         config[CONFIG_NAMESPACE] = {}
@@ -192,18 +195,19 @@ This tool will walk you through this process:
         config[CONFIG_NAMESPACE]["api_token_id"] = api_token_id
         config[CONFIG_NAMESPACE]["api_token_secret"] = api_token_secret
         config[CONFIG_NAMESPACE]["api_access_token"] = ""
-        
+
         ctx.obj['config'] = config
-        
+
         login_user(ctx)
 
         click.echo("")
 
-        click.echo("You can now run queenbee pollination commands as an authenticated user!")
+        click.echo(
+            "You can now run queenbee pollination commands as an authenticated user!")
 
-        click.echo(f"Check the and modify the config file at your own risk: {ctx.obj.get('config_path')}")
+        click.echo(
+            f"Check the and modify the config file at your own risk: {ctx.obj.get('config_path')}")
         exit(0)
-
 
     ctx.obj['config'] = config
 
@@ -215,6 +219,7 @@ def workflows(ctx):
     """
     pollination workflows plugin
     """
+
 
 @workflows.command('list')
 @click.pass_context
@@ -231,7 +236,6 @@ def list(ctx):
         handle_api_error(ctx, e)
 
 
-        
 @workflows.command('get')
 @click.option('-i', '--id', help='ID of the workflow you want to retrieve', required=True)
 @click.option('-f', '--file', help='File path to save the workflow to')
@@ -253,6 +257,7 @@ def get(ctx, id, file):
     else:
         print(workflow.yaml())
 
+
 @workflows.command('create')
 @click.option('-f', '--file', help='File path to load the workflow from', required=True)
 @click.pass_context
@@ -268,7 +273,7 @@ def create(ctx, file):
     except ApiException as e:
         handle_api_error(ctx, e)
 
-    click.echo(f"Succesfully created workflow {wf.name}")
+    click.echo(f"Successfully created workflow {wf.name}")
     click.echo(f"New ID: {response.get('id')}")
 
 
@@ -288,8 +293,9 @@ def update(ctx, id, file):
     except ApiException as e:
         handle_api_error(ctx, e)
 
-    click.echo(f"Succesfully updated workflow {wf.name}")
+    click.echo(f"Successfully updated workflow {wf.name}")
     click.echo(f"ID: {wf.id}")
+
 
 @workflows.command('delete')
 @click.option('-i', '--id', help='ID of the workflow you want to retrieve', required=True)
@@ -305,7 +311,8 @@ def delete(ctx, id):
     except ApiException as e:
         handle_api_error(ctx, e)
 
-    click.echo(f"Succesfully deleted workflow {id}")
+    click.echo(f"Successfully deleted workflow {id}")
+
 
 @pollination.group()
 @click.version_option()
@@ -315,32 +322,32 @@ def simulations(ctx):
     pollination simulations plugin
     """
 
+
 @simulations.command('list')
 @click.pass_context
-def list(ctx):
+def list_simulations(ctx):
     """list simulations"""
     login_user(ctx)
     client = ctx.obj.get('client')
 
     try:
         sims = client.simulations.list()
-        table = [[sim.id, sim.workflow_ref.name, sim.status, sim.started_at, sim.finished_at] for sim in sims]
-
+        table = [[sim.id, sim.workflow_ref.name, sim.status,
+                  sim.started_at, sim.finished_at] for sim in sims]
 
         table.sort(key=lambda r: r[4], reverse=True)
 
-
-        print(tabulate(table, headers=['ID', 'Workflow', 'Status', 'Stated At', 'Finished At']))
+        print(tabulate(table, headers=[
+              'ID', 'Workflow', 'Status', 'Stated At', 'Finished At']))
     except ApiException as e:
         handle_api_error(ctx, e)
 
 
-        
 @simulations.command('get')
 @click.option('-i', '--id', help='ID of the simulation you want to retrieve', required=True)
 @click.option('-f', '--file', help='File path to save the simulation to')
 @click.pass_context
-def get(ctx, id, file):
+def get_simulation(ctx, id, file):
     """retrieve a simulation by id"""
     login_user(ctx)
     client = ctx.obj.get('client')
@@ -351,7 +358,8 @@ def get(ctx, id, file):
         handle_api_error(ctx, e)
 
     # simulation = simulation.parse_obj(response.to_dict())
-    simulation = client.simulations.api_client.sanitize_for_serialization(response.to_dict())
+    simulation = client.simulations.api_client.sanitize_for_serialization(
+        response.to_dict())
 
     if file is not None:
         with open(file, 'w') as f:
@@ -359,12 +367,13 @@ def get(ctx, id, file):
     else:
         print(json.dumps(simulation, indent=2))
 
-@simulations.command('schedule')
+
+@simulations.command('submit')
 @click.option('-w', '--workflow', help='ID of the workflow you want to submit for simulation', required=True)
 @click.option('-f', '--file', help='File path to load the simulation from', required=False)
 @click.pass_context
-def schedule(ctx, workflow, file):
-    """create a simulation from a yaml file"""
+def submit_simulation(ctx, workflow, file):
+    """submit a workflow to run as a simulation."""
     login_user(ctx)
 
     client = ctx.obj.get('client')
@@ -381,13 +390,13 @@ def schedule(ctx, workflow, file):
     except ApiException as e:
         handle_api_error(ctx, e)
 
-    click.echo(f"Succesfully created simulation: {response.id}")
+    click.echo(f"Successfully created simulation: {response.id}")
 
 
 @simulations.command('suspend')
 @click.option('-i', '--id', help='ID of the simulation', required=True)
 @click.pass_context
-def suspend(ctx, id):
+def suspend_simulation(ctx, id):
     """suspend a running simulation"""
     login_user(ctx)
 
@@ -398,12 +407,13 @@ def suspend(ctx, id):
     except ApiException as e:
         handle_api_error(ctx, e)
 
-    click.echo(f"Succesfully suspended simulation: {id}")
+    click.echo(f"Successfully suspended simulation: {id}")
+
 
 @simulations.command('resume')
 @click.option('-i', '--id', help='ID of the simulation', required=True)
 @click.pass_context
-def resume(ctx, id):
+def resume_simulation(ctx, id):
     """resume a suspended simulation"""
     login_user(ctx)
 
@@ -414,12 +424,13 @@ def resume(ctx, id):
     except ApiException as e:
         handle_api_error(ctx, e)
 
-    click.echo(f"Succesfully resumed simulation: {id}")
+    click.echo(f"Successfully resumed simulation: {id}")
+
 
 @simulations.command('resubmit')
 @click.option('-i', '--id', help='ID of the simulation', required=True)
 @click.pass_context
-def resubmit(ctx, id):
+def resubmit_simulation(ctx, id):
     """resubmit a simulation"""
     login_user(ctx)
 
@@ -430,14 +441,15 @@ def resubmit(ctx, id):
     except ApiException as e:
         handle_api_error(ctx, e)
 
-    click.echo(f"Succesfully created simulation: {response.id}")
+    click.echo(f"Successfully created simulation: {response.id}")
+
 
 @simulations.command('download')
 @click.option('-i', '--id', help='ID of the simulation your want to retrieve artifacts from', required=True)
 @click.option('-f', '--folder', help='Folder path to save simulation artifacts to', required=True)
 @click.option('-a', '--artifact', help='Choose which artifacts to download. Will download all if not specified.', type=click.Choice(['inputs', 'outputs', 'logs'], case_sensitive=False))
 @click.pass_context
-def download(ctx, id, folder, artifact):
+def download_simulation_artifacts(ctx, id, folder, artifact):
     """download simulation artifacts"""
     login_user(ctx)
 
@@ -452,19 +464,22 @@ def download(ctx, id, folder, artifact):
 
         if a == 'inputs':
             try:
-                response = client.simulations.get_simulation_inputs(id, _preload_content=False)
+                response = client.simulations.get_simulation_inputs(
+                    id, _preload_content=False)
             except ApiException as e:
                 handle_api_error(ctx, e)
 
         elif a == 'outputs':
             try:
-                response = client.simulations.get_simulation_outputs(id, _preload_content=False)
+                response = client.simulations.get_simulation_outputs(
+                    id, _preload_content=False)
             except ApiException as e:
                 handle_api_error(ctx, e)
 
         elif a == 'logs':
             try:
-                response = client.simulations.get_simulation_logs(id, _preload_content=False)
+                response = client.simulations.get_simulation_logs(
+                    id, _preload_content=False)
             except ApiException as e:
                 handle_api_error(ctx, e)
 
@@ -489,9 +504,10 @@ def artifacts(ctx):
     pollination artifacts plugin
     """
 
+
 @artifacts.command('list')
 @click.pass_context
-def list(ctx):
+def list_artifacts(ctx):
     """list artifacts"""
     login_user(ctx)
     client = ctx.obj.get('client')
@@ -504,23 +520,22 @@ def list(ctx):
         for artifact in artifacts:
 
             if artifact.file_name != "":
-                table.append([artifact.file_name, artifact.key, artifact.size/1000000, artifact.last_modified])
-
+                table.append([artifact.file_name, artifact.key,
+                              artifact.size/1000000, artifact.last_modified])
 
         table.sort(key=lambda r: r[1], reverse=False)
 
-
-        print(tabulate(table, headers=['Name', 'Path', 'Size (Mb)', 'Last Modified']))
+        print(tabulate(table, headers=[
+              'Name', 'Path', 'Size (Mb)', 'Last Modified']))
     except ApiException as e:
         handle_api_error(ctx, e)
-
 
 
 @artifacts.command('upload')
 @click.option('-f', '--folder', help='Folder path to save simulation artifacts to', required=True)
 @click.option('-p', '--prefix', help='A prefix to use when uploading this folder to pollination storage')
 @click.pass_context
-def upload(ctx, folder, prefix):
+def upload_artifacts(ctx, folder, prefix):
     """upload artifacts"""
     login_user(ctx)
     client = ctx.obj.get('client')
@@ -534,14 +549,14 @@ def upload(ctx, folder, prefix):
                 key = os.path.join(prefix, root, file)
             else:
                 key = os.path.join(root, file)
-            
-            res = client.artifacts.create({'key': key})
 
+            res = client.artifacts.create({'key': key})
 
             # Demonstrate how another Python program can use the presigned URL to upload a file
             with open(key, 'rb') as f:
                 files = {'file': (key, f)}
-                http_response = requests.post(res.url, data=res.fields, files=files)
+                http_response = requests.post(
+                    res.url, data=res.fields, files=files)
 
                 if http_response.status_code == 204:
                     print(f"Uploaded {key}")
@@ -550,7 +565,7 @@ def upload(ctx, folder, prefix):
 @artifacts.command('delete')
 @click.option('-p', '--prefix', help='A prefix to use to delete files in your POllination storage', required=True)
 @click.pass_context
-def delete(ctx, prefix):
+def delete_artifacts(ctx, prefix):
     """upload artifacts"""
     login_user(ctx)
     client = ctx.obj.get('client')
@@ -558,6 +573,3 @@ def delete(ctx, prefix):
     client.artifacts.delete({'prefix': prefix})
 
     print("Poof... All gone!")
-
-if __name__ == "__main__":
-    pollination()
