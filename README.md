@@ -95,7 +95,7 @@ flow:
 ```console
 > queenbee pollination workflows create -f hello.yaml
 
-Succesfully updated workflow hello-world
+Successfully updated workflow hello-world
 ID: 7ceff0de-2ed9-4e89-b943-9d3f2754ad0f
 ```
 
@@ -109,10 +109,10 @@ ID: 7ceff0de-2ed9-4e89-b943-9d3f2754ad0f
 2444c12f-06f3-47c9-9566-e71860017961  hello-world
 ```
 
-3. Schedule a simulation to run using the hello-world workflow template 
+3. Submit a simulation to run using the hello-world workflow template 
 
 ```console
-> queenbee pollination simulations schedule -w 2444c12f-06f3-47c9-9566-e71860017961
+> queenbee pollination simulations submit -w 2444c12f-06f3-47c9-9566-e71860017961
 
 Succesfully created simulation: f01b6926-c953-4b4d-be7f-945aafa1ec5c
 ```
