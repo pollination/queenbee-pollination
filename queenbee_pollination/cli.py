@@ -67,6 +67,8 @@ import os
 import json
 import yaml
 import tarfile
+from concurrent.futures import ThreadPoolExecutor as PoolExecutor
+from multiprocessing import cpu_count
 
 import requests
 from tabulate import tabulate
@@ -537,29 +539,39 @@ def list_artifacts(ctx):
 @click.pass_context
 def upload_artifacts(ctx, folder, prefix):
     """upload artifacts"""
+    assert os.path.isdir(folder), f'Invalid folder: {folder}'
+
     login_user(ctx)
     client = ctx.obj.get('client')
 
     if prefix is None:
         prefix = ""
 
+    def _upload_artifacts(key):
+        res = client.artifacts.create({'key': key.replace('\\', '/')})
+        # Demonstrate how another Python program can use the presigned URL to upload a file
+        with open(key, 'rb') as f:
+            files = {'file': (key, f)}
+            http_response = requests.post(
+                res.url, data=res.fields, files=files)
+
+            if http_response.status_code == 204:
+                print(f"Uploaded {key}")
+
+    keys = []
     for root, subdirs, files in os.walk(folder):
-        for file in files:
+        for fi in files:
             if prefix is not None:
-                key = os.path.join(prefix, root, file)
+                key = os.path.join(prefix, root, fi)
             else:
-                key = os.path.join(root, file)
+                key = os.path.join(root, fi)
 
-            res = client.artifacts.create({'key': key.replace('\\', '/')})
+            keys.append(key)
 
-            # Demonstrate how another Python program can use the presigned URL to upload a file
-            with open(key, 'rb') as f:
-                files = {'file': (key, f)}
-                http_response = requests.post(
-                    res.url, data=res.fields, files=files)
-
-                if http_response.status_code == 204:
-                    print(f"Uploaded {key}")
+    worker_count = max(cpu_count() - 1, 1)
+    with PoolExecutor(max_workers=worker_count) as executor:
+        for _ in executor.map(_upload_artifacts, keys):
+            pass
 
 
 @artifacts.command('delete')
