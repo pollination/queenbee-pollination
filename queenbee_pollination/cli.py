@@ -520,7 +520,7 @@ def list(ctx):
 @click.option('-f', '--folder', help='Folder path to save simulation artifacts to', required=True)
 @click.option('-p', '--prefix', help='A prefix to use when uploading this folder to pollination storage')
 @click.pass_context
-def download(ctx, folder, prefix):
+def upload(ctx, folder, prefix):
     """upload artifacts"""
     login_user(ctx)
     client = ctx.obj.get('client')
@@ -545,6 +545,19 @@ def download(ctx, folder, prefix):
 
                 if http_response.status_code == 204:
                     print(f"Uploaded {key}")
+
+
+@artifacts.command('delete')
+@click.option('-p', '--prefix', help='A prefix to use to delete files in your POllination storage', required=True)
+@click.pass_context
+def delete(ctx, prefix):
+    """upload artifacts"""
+    login_user(ctx)
+    client = ctx.obj.get('client')
+
+    client.artifacts.delete({'prefix': prefix})
+
+    print("Poof... All gone!")
 
 if __name__ == "__main__":
     pollination()

@@ -162,6 +162,8 @@ e556c46e-f71e-4bd5-927b-f4ce6a1d1e73  hello-world                     Succeeded 
 
 You can also upload raw files to the Pollination storage bucket. These files will then be accessible to any simulation you run thereafter.
 
+### Create
+
 Create a folder called `test` and place some files in it. You can then upload these files using the following command:
 
 ```console
@@ -171,4 +173,30 @@ Uploaded test/file1.txt
 Uploaded test/file2.txt
 Uploaded test/file3.txt
 
+```
+
+### List
+
+You can list all files within your pollination folder by running the following command:
+
+```console
+> queenbee pollination artifacts list
+
+Name                            Path                                                                             Size (Mb)  Last Modified
+------------------------------  -----------------------------------------------------------------------------  -----------  --------------------------------
+room.pts                        daylight/project_folder/asset/grid/room.pts                                       0.10778   2019-12-13 03:35:02.526000+00:00
+room.pts.bkup                   daylight/project_folder/asset/grid/room.pts.bkup                                  0.004248  2019-12-13 03:34:58.764000+00:00
+rflux_sky.rad                   daylight/project_folder/asset/sky/rflux_sky.rad                                   0.000196  2019-12-13 03:34:56.755000+00:00
+sky.rad                         daylight/project_folder/asset/sky/sky.rad                                         0.00018   2019-12-13 03:34:57.345000+00:00
+
+```
+
+### Delete
+
+Artifacts can be deleted by using a prefix of exact file key. Here is an exampled to delete all files within a folder called `daylight/project_folder/`:
+
+```console
+> queenbee pollination artifacts delete -p daylight/project_folder
+
+Poof... All gone!
 ```
