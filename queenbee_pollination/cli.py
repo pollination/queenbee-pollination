@@ -550,7 +550,7 @@ def upload_artifacts(ctx, folder, prefix):
             else:
                 key = os.path.join(root, file)
 
-            res = client.artifacts.create({'key': key})
+            res = client.artifacts.create({'key': key.replace('\\', '/')})
 
             # Demonstrate how another Python program can use the presigned URL to upload a file
             with open(key, 'rb') as f:
@@ -570,6 +570,6 @@ def delete_artifacts(ctx, prefix):
     login_user(ctx)
     client = ctx.obj.get('client')
 
-    client.artifacts.delete({'prefix': prefix})
+    client.artifacts.delete({'prefix': prefix.replace('\\', '/')})
 
     print("Poof... All gone!")
