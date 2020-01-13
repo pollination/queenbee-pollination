@@ -8,6 +8,7 @@ import pollination_sdk
 from pollination_sdk.rest import ApiException
 from queenbee.schema.workflow import Workflow
 
+
 class Client(object):
     """A Pollination client designed to interact with Workflow and Simulation objects
 
@@ -22,7 +23,7 @@ class Client(object):
             api_token = Token(
                 id=api_key_id,
                 secret=api_key_secret
-                )
+            )
 
             try:
                 auth_response = auth.login(api_token)
