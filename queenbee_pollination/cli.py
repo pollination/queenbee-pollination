@@ -77,7 +77,7 @@ from queenbee.schema.workflow import Workflow
 from queenbee.schema.arguments import Arguments
 from queenbee_pollination.client import Client
 from pollination_sdk.rest import ApiException
-from pollination_sdk.models import SubmitSimulation
+from pollination_sdk.models import SubmitSimulationDto
 
 
 # TODO: Comment out and use for logging once we are adding commands to this file.
@@ -101,12 +101,11 @@ DEFAULT_SERVER_ENDPOINT = "https://api.pollination.cloud"
 
 def login_with_api_token(config, config_path):
     api_server = config[CONFIG_NAMESPACE]['api_server']
-    api_token_id = config[CONFIG_NAMESPACE]['api_token_id']
-    api_token_secret = config[CONFIG_NAMESPACE]['api_token_secret']
+    api_token = config[CONFIG_NAMESPACE]['api_token']
+
     try:
         click.echo("Logging in using api tokens...")
-        client = Client(api_key_id=api_token_id,
-                        api_key_secret=api_token_secret, host=api_server)
+        client = Client(api_token=api_token, host=api_server)
 
         config[CONFIG_NAMESPACE]["api_access_token"] = client.config.access_token
         with open(config_path, 'w') as config_file:
@@ -135,8 +134,7 @@ def login_user(ctx):
     config_path = ctx.obj.get("config_path")
     config = ctx.obj.get("config")
     api_server = config[CONFIG_NAMESPACE]['api_server']
-    api_token_id = config[CONFIG_NAMESPACE]['api_token_id']
-    api_token_secret = config[CONFIG_NAMESPACE]['api_token_secret']
+    api_token = config[CONFIG_NAMESPACE]['api_token']
     api_access_token = config[CONFIG_NAMESPACE]['api_access_token']
 
     if api_access_token == "":
@@ -177,6 +175,7 @@ def pollination(ctx):
 
     try:
         namespace_config = config.options(CONFIG_NAMESPACE)
+        ctx.obj['username'] = config[CONFIG_NAMESPACE]['username']
     except configparser.NoSectionError:
         click.echo(f"""
 Looks like this is your first time logging in.
@@ -187,20 +186,33 @@ This tool will walk you through this process:
         """)
 
         api_server = DEFAULT_SERVER_ENDPOINT
-        api_token_id = click.prompt("Enter your API Token ID")
-        api_token_secret = click.prompt(
-            "Enter your API Token Secret", hide_input=True)
+        api_token = click.prompt("Enter your API Token ID")
         api_access_token = None
 
         config[CONFIG_NAMESPACE] = {}
         config[CONFIG_NAMESPACE]["api_server"] = api_server
-        config[CONFIG_NAMESPACE]["api_token_id"] = api_token_id
-        config[CONFIG_NAMESPACE]["api_token_secret"] = api_token_secret
+        config[CONFIG_NAMESPACE]["api_token"] = api_token
         config[CONFIG_NAMESPACE]["api_access_token"] = ""
 
         ctx.obj['config'] = config
 
         login_user(ctx)
+
+        client = ctx.obj['client']
+
+        click.echo("")
+
+        try:
+            user = client.auth.get_me()
+            config[CONFIG_NAMESPACE]["username"] = user.username
+
+            with open(config_path, 'w') as config_file:
+                config.write(config_file)
+
+        except Exception as e:
+            click.echo("Failed to retrieve user profile")
+
+        click.echo(f"Hi {user.name}! Welcome to Queenbee Pollination!")
 
         click.echo("")
 
@@ -231,24 +243,28 @@ def list(ctx):
     client = ctx.obj.get('client')
 
     try:
-        wfs = client.workflows.list()
-        table = [[wf.id, wf.name] for wf in wfs]
-        print(tabulate(table, headers=['ID', 'Name']))
+        wfs = client.workflows.list_workflows()
+        table = [[wf.owner.name, wf.name, wf.public] for wf in wfs]
+        print(tabulate(table, headers=['Owner', 'Name', 'Public']))
     except ApiException as e:
         handle_api_error(ctx, e)
 
 
 @workflows.command('get')
-@click.option('-i', '--id', help='ID of the workflow you want to retrieve', required=True)
+@click.option('-n', '--name', help='Name of the workflow you want to retrieve', required=True)
+@click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
 @click.option('-f', '--file', help='File path to save the workflow to')
 @click.pass_context
-def get(ctx, id, file):
+def get(ctx, owner, name, file):
     """retrieve a workflow by id"""
     login_user(ctx)
     client = ctx.obj.get('client')
 
+    if owner is None:
+        owner = ctx.obj['username']
+
     try:
-        response = client.workflows.get(id)
+        response = client.workflows.get_workflow(owner, name)
     except ApiException as e:
         handle_api_error(ctx, e)
 
@@ -262,58 +278,78 @@ def get(ctx, id, file):
 
 @workflows.command('create')
 @click.option('-f', '--file', help='File path to load the workflow from', required=True)
+@click.option('--private', is_flag=True)
+@click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
 @click.pass_context
-def create(ctx, file):
+def create(ctx, owner, file, private):
     """create a workflow from a yaml file"""
     login_user(ctx)
 
     client = ctx.obj.get('client')
 
+    if owner is None:
+        owner = ctx.obj['username']
+
     wf = Workflow.from_file(file)
+
+    wf_dict = wf.dict()
+
+    if private:
+        wf_dict['public'] = False
+    else:
+        wf_dict['public'] = True
+
+
     try:
-        response = client.workflows.create(wf.dict())
+        response = client.workflows.create_workflow(owner, wf_dict)
     except ApiException as e:
         handle_api_error(ctx, e)
 
-    click.echo(f"Successfully created workflow {wf.name}")
-    click.echo(f"New ID: {response.get('id')}")
+    click.echo(f"Successfully created workflow {owner}/{wf.name}")
 
 
 @workflows.command('update')
-@click.option('-i', '--id', help='ID of the workflow you want to retrieve', required=True)
+@click.option('-n', '--name', help='Name of the workflow you want to retrieve', required=True)
+@click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
 @click.option('-f', '--file', help='File path to load the workflow from', required=True)
 @click.pass_context
-def update(ctx, id, file):
+def update(ctx, name, owner, file):
     """update a workflow from a yaml file"""
     login_user(ctx)
 
     client = ctx.obj.get('client')
 
+    if owner is None:
+        owner = ctx.obj['username']
+
     wf = Workflow.from_file(file)
     try:
-        response = client.workflows.update(id, wf.dict())
+        response = client.workflows.update_workflow(owner, name, wf.dict())
     except ApiException as e:
         handle_api_error(ctx, e)
 
-    click.echo(f"Successfully updated workflow {wf.name}")
-    click.echo(f"ID: {wf.id}")
+    click.echo(f"Successfully updated workflow {owner}/{name}")
 
 
 @workflows.command('delete')
-@click.option('-i', '--id', help='ID of the workflow you want to retrieve', required=True)
+@click.option('-n', '--name', help='Name of the workflow you want to retrieve', required=True)
+@click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
 @click.pass_context
-def delete(ctx, id):
+def delete(ctx, owner, name):
     """delete a workflow from a yaml file"""
     login_user(ctx)
 
     client = ctx.obj.get('client')
+    
+    if owner is None:
+        owner = ctx.obj['username']
 
     try:
-        response = client.workflows.delete(id)
+        response = client.workflows.delete_workflow(owner, name)
     except ApiException as e:
         handle_api_error(ctx, e)
 
-    click.echo(f"Successfully deleted workflow {id}")
+    click.echo(f"Successfully deleted workflow {owner}/{name}")
 
 
 @pollination.group()
@@ -326,14 +362,19 @@ def simulations(ctx):
 
 
 @simulations.command('list')
+@click.option('-p', '--project', help='Name of a project', required=True)
+@click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
 @click.pass_context
-def list_simulations(ctx):
+def list_simulations(ctx, owner, project):
     """list simulations"""
     login_user(ctx)
     client = ctx.obj.get('client')
 
+    if owner is None:
+        owner = ctx.obj['username']
+
     try:
-        sims = client.simulations.list()
+        sims = client.simulations.list_simulations(owner, project)
         table = [[sim.id, sim.workflow_ref.name, sim.status,
                   sim.started_at, sim.finished_at] for sim in sims]
 
@@ -346,16 +387,21 @@ def list_simulations(ctx):
 
 
 @simulations.command('get')
+@click.option('-p', '--project', help='Name of a project', required=True)
+@click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
 @click.option('-i', '--id', help='ID of the simulation you want to retrieve', required=True)
 @click.option('-f', '--file', help='File path to save the simulation to')
 @click.pass_context
-def get_simulation(ctx, id, file):
+def get_simulation(ctx, owner, project, id, file):
     """retrieve a simulation by id"""
     login_user(ctx)
     client = ctx.obj.get('client')
 
+    if owner is None:
+        owner = ctx.obj['username']
+
     try:
-        response = client.simulations.get(id)
+        response = client.simulations.get_simulation(owner, project, id)
     except ApiException as e:
         handle_api_error(ctx, e)
 
@@ -371,24 +417,34 @@ def get_simulation(ctx, id, file):
 
 
 @simulations.command('submit')
-@click.option('-w', '--workflow', help='ID of the workflow you want to submit for simulation', required=True)
-@click.option('-f', '--file', help='File path to load the simulation from', required=False)
+@click.option('-p', '--project', help='Name of a project', required=True)
+@click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
+@click.option('-w', '--workflow', help='Slug of the workflow you want to use. eg: ladybugtools/daylight-factor', required=True)
+@click.option('-f', '--file', help='File path to load the parameters', required=False)
 @click.pass_context
-def submit_simulation(ctx, workflow, file):
+def submit_simulation(ctx, owner, project, workflow, file):
     """submit a workflow to run as a simulation."""
     login_user(ctx)
 
     client = ctx.obj.get('client')
 
+    if owner is None:
+        owner = ctx.obj['username']
+
     if file is not None:
-        args = Arguments.from_file(file)
+        try:
+            args = Arguments.from_file(file)
+        except Exception as e:
+            click.echo(f'Something went wrong when parsing arguments from file {file}')
+            click.UsageError(e.message)
     else:
         args = Arguments()
 
-    submit_payload = SubmitSimulation(workflow=workflow, inputs=args.dict())
+
+    submit_payload = SubmitSimulationDto(workflow, args)
 
     try:
-        response = client.simulations.create(submit_payload)
+        response = client.simulations.create(owner, project, submit_payload)
     except ApiException as e:
         handle_api_error(ctx, e)
 
@@ -396,16 +452,21 @@ def submit_simulation(ctx, workflow, file):
 
 
 @simulations.command('suspend')
+@click.option('-p', '--project', help='Name of a project', required=True)
+@click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
 @click.option('-i', '--id', help='ID of the simulation', required=True)
 @click.pass_context
-def suspend_simulation(ctx, id):
+def suspend_simulation(ctx, owner, project, id):
     """suspend a running simulation"""
     login_user(ctx)
+
+    if owner is None:
+        owner = ctx.obj['username']
 
     client = ctx.obj.get('client')
 
     try:
-        response = client.simulations.suspend(id)
+        response = client.simulations.suspend_simulation(owner, project, id)
     except ApiException as e:
         handle_api_error(ctx, e)
 
@@ -413,16 +474,21 @@ def suspend_simulation(ctx, id):
 
 
 @simulations.command('resume')
+@click.option('-p', '--project', help='Name of a project', required=True)
+@click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
 @click.option('-i', '--id', help='ID of the simulation', required=True)
 @click.pass_context
-def resume_simulation(ctx, id):
+def resume_simulation(ctx, owner, project, id):
     """resume a suspended simulation"""
     login_user(ctx)
+
+    if owner is None:
+        owner = ctx.obj['username']
 
     client = ctx.obj.get('client')
 
     try:
-        response = client.simulations.resume(id)
+        response = client.simulations.resume_simulation(owner, project, id)
     except ApiException as e:
         handle_api_error(ctx, e)
 
@@ -430,16 +496,21 @@ def resume_simulation(ctx, id):
 
 
 @simulations.command('resubmit')
+@click.option('-p', '--project', help='Name of a project', required=True)
+@click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
 @click.option('-i', '--id', help='ID of the simulation', required=True)
 @click.pass_context
-def resubmit_simulation(ctx, id):
+def resubmit_simulation(ctx, owner, project, id):
     """resubmit a simulation"""
     login_user(ctx)
+
+    if owner is None:
+        owner = ctx.obj['username']
 
     client = ctx.obj.get('client')
 
     try:
-        response = client.simulations.resubmit(id)
+        response = client.simulations.resubmit(owner, project, id)
     except ApiException as e:
         handle_api_error(ctx, e)
 
@@ -447,13 +518,18 @@ def resubmit_simulation(ctx, id):
 
 
 @simulations.command('download')
+@click.option('-p', '--project', help='Name of a project', required=True)
+@click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
 @click.option('-i', '--id', help='ID of the simulation your want to retrieve artifacts from', required=True)
 @click.option('-f', '--folder', help='Folder path to save simulation artifacts to', required=True)
 @click.option('-a', '--artifact', help='Choose which artifacts to download. Will download all if not specified.', type=click.Choice(['inputs', 'outputs', 'logs'], case_sensitive=False))
 @click.pass_context
-def download_simulation_artifacts(ctx, id, folder, artifact):
+def download_simulation_artifacts(ctx, owner, project, id, folder, artifact):
     """download simulation artifacts"""
     login_user(ctx)
+
+    if owner is None:
+        owner = ctx.obj['username']
 
     client = ctx.obj.get('client')
 
@@ -467,21 +543,33 @@ def download_simulation_artifacts(ctx, id, folder, artifact):
         if a == 'inputs':
             try:
                 response = client.simulations.get_simulation_inputs(
-                    id, _preload_content=False)
+                    owner,
+                    project,
+                    id,
+                    _preload_content=False
+                )
             except ApiException as e:
                 handle_api_error(ctx, e)
 
         elif a == 'outputs':
             try:
                 response = client.simulations.get_simulation_outputs(
-                    id, _preload_content=False)
+                    owner,
+                    project,
+                    id,
+                    _preload_content=False
+                )
             except ApiException as e:
                 handle_api_error(ctx, e)
 
         elif a == 'logs':
             try:
                 response = client.simulations.get_simulation_logs(
-                    id, _preload_content=False)
+                    owner,
+                    project,
+                    id,
+                    _preload_content=False
+                )
             except ApiException as e:
                 handle_api_error(ctx, e)
 
@@ -508,14 +596,20 @@ def artifacts(ctx):
 
 
 @artifacts.command('list')
+@click.option('-p', '--project', help='Name of a project', required=True)
+@click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
 @click.pass_context
-def list_artifacts(ctx):
+def list_artifacts(ctx, owner, project):
     """list artifacts"""
     login_user(ctx)
+ 
+    if owner is None:
+        owner = ctx.obj['username']
+
     client = ctx.obj.get('client')
 
     try:
-        artifacts = client.artifacts.list()
+        artifacts = client.artifacts.list_artifacts(owner, project)
 
         table = []
 
@@ -534,6 +628,8 @@ def list_artifacts(ctx):
 
 
 @artifacts.command('upload')
+@click.option('-p', '--project', help='Name of a project', required=True)
+@click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
 @click.option('-f', '--folder', help='Folder path to save simulation artifacts to', required=True)
 @click.option('-p', '--prefix', help='A prefix to use when uploading this folder to pollination storage')
 @click.pass_context
@@ -542,13 +638,18 @@ def upload_artifacts(ctx, folder, prefix):
     assert os.path.isdir(folder), f'Invalid folder: {folder}'
 
     login_user(ctx)
+
+    if owner is None:
+        owner = ctx.obj['username']
+
+
     client = ctx.obj.get('client')
 
     if prefix is None:
         prefix = ""
 
     def _upload_artifacts(key):
-        res = client.artifacts.create({'key': key.replace('\\', '/')})
+        res = client.artifacts.create_artifact(owner, project, {'key': key.replace('\\', '/')})
         # Demonstrate how another Python program can use the presigned URL to upload a file
         with open(key, 'rb') as f:
             files = {'file': (key, f)}
@@ -575,11 +676,17 @@ def upload_artifacts(ctx, folder, prefix):
 
 
 @artifacts.command('delete')
+@click.option('-p', '--project', help='Name of a project', required=True)
+@click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
 @click.option('-p', '--prefix', help='A prefix to use to delete files in your POllination storage', required=True)
 @click.pass_context
 def delete_artifacts(ctx, prefix):
     """upload artifacts"""
     login_user(ctx)
+
+    if owner is None:
+        owner = ctx.obj['username']
+
     client = ctx.obj.get('client')
 
     client.artifacts.delete({'prefix': prefix.replace('\\', '/')})
