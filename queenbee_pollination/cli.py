@@ -363,6 +363,45 @@ def delete(ctx, owner, name):
 @pollination.group()
 @click.version_option()
 @click.pass_context
+def projects(ctx):
+    """
+    pollination projects plugin
+    """
+
+
+@projects.command('create')
+@click.option('-n', '--name', help='Name of the project you want to create', required=True)
+@click.option('-d', '--description', help='Description of the project you want to create')
+@click.option('--private', is_flag=True)
+@click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
+@click.pass_context
+def create(ctx, owner, name, description, private):
+    """create a workflow from a yaml file"""
+    login_user(ctx)
+
+    client = ctx.obj.get('client')
+
+    if owner is None:
+        owner = ctx.obj['username']
+
+    if description is None:
+        description = ''
+
+    try:
+        response = client.projects.create_project(owner, {
+            "name": name,
+            "description": description,
+            "public": private == True
+        })
+    except ApiException as e:
+        handle_api_error(ctx, e)
+
+    click.echo(f"Successfully created project {owner}/{name}")
+
+
+@pollination.group()
+@click.version_option()
+@click.pass_context
 def simulations(ctx):
     """
     pollination simulations plugin

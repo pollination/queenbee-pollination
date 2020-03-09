@@ -3,7 +3,7 @@ from uuid import uuid4
 import json
 
 from pollination_sdk import Configuration, ApiClient, WorkflowsApi, \
-    SimulationsApi, UserApi, ArtifactsApi
+    SimulationsApi, UserApi, ArtifactsApi, ProjectsApi
 import pollination_sdk
 from pollination_sdk.rest import ApiException
 from queenbee.schema.workflow import Workflow
@@ -41,3 +41,4 @@ class Client(object):
         self.workflows = WorkflowsApi(ApiClient(config))
         self.simulations = SimulationsApi(ApiClient(config))
         self.artifacts = ArtifactsApi(ApiClient(config))
+        self.projects = ProjectsApi(ApiClient(config))
