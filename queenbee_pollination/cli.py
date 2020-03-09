@@ -69,6 +69,7 @@ import yaml
 import tarfile
 from concurrent.futures import ThreadPoolExecutor as PoolExecutor
 from multiprocessing import cpu_count
+from urllib3.exceptions import ProtocolError
 
 import requests
 from tabulate import tabulate
@@ -186,7 +187,7 @@ This tool will walk you through this process:
         """)
 
         api_server = DEFAULT_SERVER_ENDPOINT
-        api_token = click.prompt("Enter your API Token ID")
+        api_token = click.prompt("Enter your API Token", hide_input=True)
         api_access_token = None
 
         config[CONFIG_NAMESPACE] = {}
@@ -422,13 +423,12 @@ def list_simulations(ctx, owner, project):
 
     try:
         sims = client.simulations.list_simulations(owner, project)
-        table = [[sim.id, sim.workflow_ref.name, sim.status,
-                  sim.started_at, sim.finished_at] for sim in sims]
+        table = [[sim.id, sim.status, sim.started_at, sim.finished_at] for sim in sims]
 
-        table.sort(key=lambda r: r[4], reverse=True)
+        table.sort(key=lambda r: r[2], reverse=True)
 
         print(tabulate(table, headers=[
-              'ID', 'Workflow', 'Status', 'Stated At', 'Finished At']))
+              'ID', 'Status', 'Stated At', 'Finished At']))
     except ApiException as e:
         handle_api_error(ctx, e)
 
@@ -621,17 +621,22 @@ def download_simulation_artifacts(ctx, owner, project, id, folder, artifact):
                 handle_api_error(ctx, e)
 
         CHUNK = 16 * 1024
-        with open(f'{folder}.tar.gz', 'wb') as f:
-            while True:
-                chunk = response.read(CHUNK)
-                if not chunk:
-                    break
-                f.write(chunk)
+        try:
+            with open(f'{folder}.tar.gz', 'wb') as f:
+                while True:
+                    chunk = response.read(CHUNK)
+                    if not chunk:
+                        break
+                    f.write(chunk)
 
-        tar = tarfile.open(name=f'{folder}.tar.gz')
-        tar.extractall(f'{folder}')
-        os.remove(f'{folder}.tar.gz')
+            tar = tarfile.open(name=f'{folder}.tar.gz')
+            tar.extractall(f'{folder}')
+            os.remove(f'{folder}.tar.gz')
 
+            print(f'Saved {a} files to {folder}/{a}')
+
+        except ProtocolError as e:
+            print(f'No {a}  files found')
 
 @pollination.group()
 @click.version_option()
@@ -687,7 +692,7 @@ def list_artifacts(ctx, owner, project, folder):
 @click.option('-p', '--project', help='Name of a project', required=True)
 @click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
 @click.option('-f', '--folder', help='Folder path to save simulation artifacts to', required=True)
-@click.option('-p', '--prefix', help='A prefix to use when uploading this folder to pollination storage')
+@click.option('--prefix', help='A prefix to use when uploading this folder to pollination storage')
 @click.pass_context
 def upload_artifacts(ctx, project, owner, folder, prefix):
     """upload artifacts"""
