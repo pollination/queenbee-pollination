@@ -17,29 +17,33 @@ pip install queenbee-pollination[cli]
 
 When you first run any queenbee-pollination command through the CLI you will be required to enter some authentication details so that the tool can interact with the Pollination API using your account.
 
-You will need your Pollination API token `Key` and `ID` which can be found on your [account page](https://pollination.cloud/pollination-ui/#/profile).
+You will need a Pollination API token. You can generate a new one from your user profile setting: `https://app.pollination.cloud/{your-user-name}/settings`.
 
-You will be prompted to do so by the CLI as demonstrated below:
+In this example we will use the `ladybugbot` user. If you were ladybugbot you would access your API tokens at this page: `https://app.pollination.cloud/ladybugbot/settings`.
+
+You will be prompted to do provide your API token by the CLI as demonstrated below:
 
 ```console
-> queenbee pollination workflows
+> queenbee pollination workflows list
 
 Looks like this is your first time logging in.
 
-To interract with Pollination you need to save authentication credentials in C:\Users\me\.queenbee
+To interract with Pollination you need to save authentication credentials in C:\Users\ladybugbot\.queenbee
 
 This tool will walk you through this process:
         
-Enter your API Token ID: f15be412fe6f41dc01440f2363a13fed
-Enter your API Token Secret: 
+Enter your API Token:
 Logging in using api tokens...
 Success!
 
+Hi ladybugbot@ladybugtools.com! Welcome to Queenbee Pollination!
+
 You can now run queenbee pollination commands as an authenticated user!
-Check the and modify the config file at your own risk: C:\Users\me\.queenbee
+Check the and modify the config file at your own risk: C:\Users\ladybugbot\.queenbee
+
 ```
 
-You can now check the configuration file saved at the path indicated in you command line. in the case of the example above the path to the config file is: `C:\Users\me\.queenbee`.
+You can now check the configuration file saved at the path indicated in you command line. in the case of the example above the path to the config file is: `C:\Users\ladybugbot\.queenbee`.
 
 ## Hello World!
 
@@ -50,6 +54,8 @@ Copy and save the text below into a file called `hello.yaml`.
 ```yaml
 type: workflow
 name: hello-world
+
+artifact_locations: []
 
 operators:
 - name: whalesay
@@ -95,8 +101,7 @@ flow:
 ```console
 > queenbee pollination workflows create -f hello.yaml
 
-Successfully updated workflow hello-world
-ID: 7ceff0de-2ed9-4e89-b943-9d3f2754ad0f
+Successfully created workflow ladybugbot/hello-world
 ```
 
 2. List your existing workflows
@@ -104,99 +109,106 @@ ID: 7ceff0de-2ed9-4e89-b943-9d3f2754ad0f
 ```console
 > queenbee pollination workflows list
 
-  ID                                    Name
-------------------------------------  ------------------------------
-2444c12f-06f3-47c9-9566-e71860017961  hello-world
+Owner       Name             Public
+----------  ---------------  --------
+ladybugbot  hello-world      True
+
 ```
 
-3. Submit a simulation to run using the hello-world workflow template 
-
+3. Simulations can only be run within the context of a project. To create a new project, run the following command:
 ```console
-> queenbee pollination simulations submit -w 2444c12f-06f3-47c9-9566-e71860017961
+> queenbee pollination projects create -n hello-world
 
-Succesfully created simulation: f01b6926-c953-4b4d-be7f-945aafa1ec5c
+Successfully created project ladybugtools/hello-world
 ```
 
-4. Resubmit the simulation a couple of times to create multiple simulations.
-   
-```console
-> queenbee pollination simulations resubmit -i f01b6926-c953-4b4d-be7f-945aafa1ec5c
+4. Submit a simulation to run using the hello-world workflow template 
 
-Succesfully created simulation: 7b78543f-e929-4876-bb23-88775f69ffc9
+```console
+> queenbee pollination simulations submit --project hello-world --workflow ladybugtools/hello-world
+
+Successfully created simulation: 15a558e3-5978-40cc-ba2f-aeeef1874600
 ```
 
 5. List all running simulations
 
 ```console
-> queenbee pollination simulations list
-
-ID                                    Workflow                        Phase      Completed    Stated At                  Finished At
-------------------------------------  ------------------------------  ---------  -----------  -------------------------  -------------------------
-f01b6926-c953-4b4d-be7f-945aafa1ec5c  hello-world                     Succeeded  True         2019-12-11 07:59:05+00:00  2019-12-11 07:59:23+00:00
-c7a681d2-2b1c-414e-bc9e-88cf0bfcaf84  hello-world                     Succeeded  True         2019-12-11 07:57:50+00:00  2019-12-11 07:57:50+00:00
-e5fa5b0b-7253-47cd-a6a0-63b2f5249cf4  hello-world                     Succeeded  True         2019-12-11 07:54:46+00:00  2019-12-11 07:54:46+00:00
-e556c46e-f71e-4bd5-927b-f4ce6a1d1e73  hello-world                     Succeeded  True         2019-12-11 07:49:39+00:00  2019-12-11 07:49:39+00:00
-```
-
-6. Retrieve the logs from the latest ran workflow. The command below will download all logs into the `dump/logs/` folder.
-
-```console
-> queenbee pollination simulations download -i f01b6926-c953-4b4d-be7f-945aafa1ec5c -f dump -a logs
+> queenbee pollination simulations list --project hello-world
+ID                                    Status     Stated At                  Finished At
+------------------------------------  ---------  -------------------------  -------------------------
+15a558e3-5978-40cc-ba2f-aeeef1874600  Succeeded  2020-03-09 02:00:23+00:00  2020-03-09 02:01:01+00:00
 
 ```
 
-7. Retrieve all persisted simulation data to a local folder called `sim-data`.
+1. Retrieve all persisted simulation data to a local folder called `sim-data`.
 
 ```console
-> queenbee pollination simulations download -i f01b6926-c953-4b4d-be7f-945aafa1ec5c -f sim-data
+> queenbee pollination simulations download --project hello-world -i 15a558e3-5978-40cc-ba2f-aeeef1874600 --folder sim-data
 
+No inputs  files found
+No outputs  files found
+Saved logs files to sim-data/logs
 ```
 
-8. Inpect simulation metadata in detail. Get and save the simulation object into a file called `dump.json`
+8. Inspect simulation metadata in detail. Get and save the simulation object into a file called `simulation.json` inside the `sim-data` folder.
 
 ```console
-> queenbee pollination simulations get -i f01b6926-c953-4b4d-be7f-945aafa1ec5c -f dump.json
+> queenbee pollination simulations get --project hello-world -i 15a558e3-5978-40cc-ba2f-aeeef1874600 -f sim-data/simulation.json
 ```
 
 ## Artifacts
 
-You can also upload raw files to the Pollination storage bucket. These files will then be accessible to any simulation you run thereafter.
+You can also upload raw files to a project's folder. We call these `artifacts`. These artifacts will then be accessible to any simulation you run in this project.
 
-### Create
+In the following example we will upload a radiance folder and then run a daylight-factor simulation on top of it.
 
-Create a folder called `test` and place some files in it. You can then upload these files using the following command:
+1. Clone the github project and move your terminal into the repository
 
 ```console
-> queenbee pollination artifacts upload -f test
+> git clone https://github.com/ladybug-tools/radiance-folder-structure/
 
-Uploaded test/file1.txt
-Uploaded test/file2.txt
-Uploaded test/file3.txt
+Cloning into 'radiance-folder-structure'...
+remote: Enumerating objects: 311, done.
+remote: Total 311 (delta 0), reused 0 (delta 0), pack-reused 311
+Receiving objects: 100% (311/311), 1.07 MiB | 989.00 KiB/s, done.
+Resolving deltas: 100% (87/87), done.
+
+> cd radiance-folder-structure
+```
+
+2. Upload the files to your `hello-world` project. You should be able to check them out at `https://app.pollination.cloud/projects/{your-username}/hello-world`
+
+```
+> queenbee pollination artifacts upload --project hello-world -f project_folder
+```
+
+3. Run a daylight-factor simulation using another user's workflow (it's all about sharing!)
+
+```console
+> queenbee pollination simulations submit -p hello-world -w antoinedao/daylight-factor
+
+Successfully created simulation: 5cbdcb5f-fec9-4048-8b59-5e37f8182d8e
 
 ```
 
-### List
-
-You can list all files within your pollination folder by running the following command:
+4. Check the status of your simulation. Once the simulation you created is marked as "Succeeded" you can carry onto the next step.
 
 ```console
-> queenbee pollination artifacts list
-
-Name                            Path                                                                             Size (Mb)  Last Modified
-------------------------------  -----------------------------------------------------------------------------  -----------  --------------------------------
-room.pts                        daylight/project_folder/asset/grid/room.pts                                       0.10778   2019-12-13 03:35:02.526000+00:00
-room.pts.bkup                   daylight/project_folder/asset/grid/room.pts.bkup                                  0.004248  2019-12-13 03:34:58.764000+00:00
-rflux_sky.rad                   daylight/project_folder/asset/sky/rflux_sky.rad                                   0.000196  2019-12-13 03:34:56.755000+00:00
-sky.rad                         daylight/project_folder/asset/sky/sky.rad                                         0.00018   2019-12-13 03:34:57.345000+00:00
-
+> queenbee pollination simulations list --project hello-world
+ID                                    Status     Stated At                  Finished At
+------------------------------------  ---------  -------------------------  -------------------------
+5cbdcb5f-fec9-4048-8b59-5e37f8182d8e  Running  2020-03-09 02:10:23+00:00  2020-03-09 02:12:01+00:00
+15a558e3-5978-40cc-ba2f-aeeef1874600  Succeeded  2020-03-09 02:00:23+00:00  2020-03-09 02:01:01+00:00
 ```
 
-### Delete
-
-Artifacts can be deleted by using a prefix of exact file key. Here is an exampled to delete all files within a folder called `daylight/project_folder/`:
+5. Download your results and start analysing them using whatever tool you like!
 
 ```console
-> queenbee pollination artifacts delete -p daylight/project_folder
+> queenbee pollination simulations download --project hello-world -i 5cbdcb5f-fec9-4048-8b59-5e37f8182d8e --folder daylight-factor-data
 
-Poof... All gone!
+Saved inputs files to daylight-factor-data/logs
+Saved outputs files to daylight-factor-data/logs
+Saved logs files to daylight-factor-data/logs
+
+> queenbee pollination simulations get --project hello-world -i 5cbdcb5f-fec9-4048-8b59-5e37f8182d8e -f daylight-factor-data/simulation.json
 ```
