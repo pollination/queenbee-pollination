@@ -311,9 +311,10 @@ def create(ctx, owner, file, private):
 @workflows.command('update')
 @click.option('-n', '--name', help='Name of the workflow you want to retrieve', required=True)
 @click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
+@click.option('--private', is_flag=True)
 @click.option('-f', '--file', help='File path to load the workflow from', required=True)
 @click.pass_context
-def update(ctx, name, owner, file):
+def update(ctx, name, owner, file, private):
     """update a workflow from a yaml file"""
     login_user(ctx)
 
@@ -323,8 +324,15 @@ def update(ctx, name, owner, file):
         owner = ctx.obj['username']
 
     wf = Workflow.from_file(file)
+    wf_dict = wf.dict()
+
+    if private:
+        wf_dict['public'] = False
+    else:
+        wf_dict['public'] = True
+
     try:
-        response = client.workflows.update_workflow(owner, name, wf.dict())
+        response = client.workflows.update_workflow(owner, name, wf_dict)
     except ApiException as e:
         handle_api_error(ctx, e)
 
@@ -441,10 +449,10 @@ def submit_simulation(ctx, owner, project, workflow, file):
         args = Arguments()
 
 
-    submit_payload = SubmitSimulationDto(workflow, args)
+    submit_payload = SubmitSimulationDto(workflow, args.dict())
 
     try:
-        response = client.simulations.create(owner, project, submit_payload)
+        response = client.simulations.create_simulation(owner, project, submit_payload)
     except ApiException as e:
         handle_api_error(ctx, e)
 
@@ -598,9 +606,12 @@ def artifacts(ctx):
 @artifacts.command('list')
 @click.option('-p', '--project', help='Name of a project', required=True)
 @click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
+@click.option('-f', '--folder', help='Folder path to list artifacts for', required=False)
 @click.pass_context
-def list_artifacts(ctx, owner, project):
+def list_artifacts(ctx, owner, project, folder):
     """list artifacts"""
+    path = None
+    
     login_user(ctx)
  
     if owner is None:
@@ -608,16 +619,22 @@ def list_artifacts(ctx, owner, project):
 
     client = ctx.obj.get('client')
 
+    if folder is not None:
+        path = [folder]
+
     try:
-        artifacts = client.artifacts.list_artifacts(owner, project)
+        artifacts = client.artifacts.list_artifacts(owner, project, path=path)
 
         table = []
 
         for artifact in artifacts:
 
-            if artifact.file_name != "":
+            if artifact.type == "file":
                 table.append([artifact.file_name, artifact.key,
                               artifact.size/1000000, artifact.last_modified])
+
+            if artifact.type == "folder":
+                table.append([artifact.file_name, artifact.key, None, None])
 
         table.sort(key=lambda r: r[1], reverse=False)
 
@@ -633,7 +650,7 @@ def list_artifacts(ctx, owner, project):
 @click.option('-f', '--folder', help='Folder path to save simulation artifacts to', required=True)
 @click.option('-p', '--prefix', help='A prefix to use when uploading this folder to pollination storage')
 @click.pass_context
-def upload_artifacts(ctx, folder, prefix):
+def upload_artifacts(ctx, project, owner, folder, prefix):
     """upload artifacts"""
     assert os.path.isdir(folder), f'Invalid folder: {folder}'
 
@@ -678,10 +695,15 @@ def upload_artifacts(ctx, folder, prefix):
 @artifacts.command('delete')
 @click.option('-p', '--project', help='Name of a project', required=True)
 @click.option('-o', '--owner', help='The owner of the workflow you want to retrieve. Will default to logged in user.')
-@click.option('-p', '--prefix', help='A prefix to use to delete files in your POllination storage', required=True)
+@click.option('-f', '--folder', help='A folder to use to delete files in your Pollination storage', required=True)
 @click.pass_context
-def delete_artifacts(ctx, prefix):
+def delete_artifacts(ctx, project, owner, folder):
     """upload artifacts"""
+    path = None
+    
+    if folder is not None:
+        path = [folder]
+    
     login_user(ctx)
 
     if owner is None:
@@ -689,6 +711,6 @@ def delete_artifacts(ctx, prefix):
 
     client = ctx.obj.get('client')
 
-    client.artifacts.delete({'prefix': prefix.replace('\\', '/')})
+    client.artifacts.delete(owner, project, path=path)
 
     print("Poof... All gone!")
