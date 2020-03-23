@@ -392,7 +392,7 @@ def create(ctx, owner, name, description, private):
         response = client.projects.create_project(owner, {
             "name": name,
             "description": description,
-            "public": private == True
+            "public": private == False
         })
     except ApiException as e:
         handle_api_error(ctx, e)
