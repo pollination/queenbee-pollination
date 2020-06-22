@@ -153,12 +153,12 @@ def simulation():
     pass
 
 
-@simulation.command('schedule')
+@simulation.command('submit')
 @click.argument('recipe', type=str)
 @click.option('-p', '--project', help='project name', type=str, required=True)
 @click.option('-o', '--owner', help='a pollination account name')
 @click.option('-i', '--inputs', help='path to an inputs file', type=click.Path(exists=True))
-def schedule(project, recipe, owner, inputs):
+def submit(project, recipe, owner, inputs):
     """Schedule a simulation to be run"""
 
     ctx = click.get_current_context()

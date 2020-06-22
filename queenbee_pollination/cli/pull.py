@@ -74,7 +74,7 @@ def recipe(name, owner, tag, path, force):
         )
     except FileExistsError as error:
         if not force:
-            raise click.ClickException(f'Folder already exists at path {path}')
+            raise click.ClickException(f'Folder already exists at path {path}. Use "--force" to overwrite it.')
         
         shutil.rmtree(path)
 
