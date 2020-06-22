@@ -1,12 +1,4 @@
-from datetime import datetime
-from uuid import uuid4
-import json
-
-from pollination_sdk import Configuration, ApiClient, WorkflowsApi, \
-    SimulationsApi, UserApi, ArtifactsApi, ProjectsApi
-import pollination_sdk
-from pollination_sdk.rest import ApiException
-from queenbee.schema.workflow import Workflow
+import pollination_sdk as sdk
 
 
 class Client(object):
@@ -15,30 +7,34 @@ class Client(object):
     """
 
     def __init__(self, api_token=None, access_token=None, host='https://api.pollination.cloud'):
-        config = Configuration()
+        config = sdk.Configuration()
         config.host = host
 
-        auth = UserApi(ApiClient(config))
+        auth = sdk.UserApi(sdk.ApiClient(config))
 
         if access_token is None:
-            api_token = pollination_sdk.LoginDto(
+            api_token = sdk.LoginDto(
                 api_token=api_token
             )
 
             try:
                 auth_response = auth.login(api_token)
-            except ApiException as e:
-                if e.status == 403:
+            except sdk.rest.ApiException as error:
+                if error.status == 403:
                     raise ValueError("Failed to log in... </3")
-                raise e
+                raise error
 
             config.access_token = auth_response.access_token
         else:
             config.access_token = access_token
 
         self.config = config
-        self.auth = auth = UserApi(ApiClient(config))
-        self.workflows = WorkflowsApi(ApiClient(config))
-        self.simulations = SimulationsApi(ApiClient(config))
-        self.artifacts = ArtifactsApi(ApiClient(config))
-        self.projects = ProjectsApi(ApiClient(config))
+        self.auth = sdk.UserApi(sdk.ApiClient(config))
+        self.recipes = sdk.RecipesApi(sdk.ApiClient(config))
+        self.operators = sdk.OperatorsApi(sdk.ApiClient(config))
+        self.simulations = sdk.SimulationsApi(sdk.ApiClient(config))
+        self.artifacts = sdk.ArtifactsApi(sdk.ApiClient(config))
+        self.projects = sdk.ProjectsApi(sdk.ApiClient(config))
+
+    def get_account(self) -> sdk.models.PrivateUserDto:
+        return self.auth.get_me()
