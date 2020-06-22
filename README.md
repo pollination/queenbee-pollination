@@ -15,200 +15,85 @@ pip install queenbee-pollination[cli]
 
 ### Authentication
 
-When you first run any queenbee-pollination command through the CLI you will be required to enter some authentication details so that the tool can interact with the Pollination API using your account.
+The CLI tool will authenticate to the Pollination API in one of two ways:
 
-You will need a Pollination API token. You can generate a new one from your user profile setting: `https://app.pollination.cloud/{your-user-name}/settings`.
+* **Env vars**: Set the following environment variable as your API token before running commands `QB_POLLINATION_TOKEN`
+* **Queenbee Config**: Re-use pollination auth set in your queenbee config. You can do so by using this command `queenbee config auth add pollination YOUR_POLLINATION_API_KEY`
 
-In this example we will use the `ladybugbot` user. If you were ladybugbot you would access your API tokens at this page: `https://app.pollination.cloud/ladybugbot/settings`.
 
-You will be prompted to do provide your API token by the CLI as demonstrated below:
+## Push
 
-```console
-> queenbee pollination workflows list
+You can push recipes and operators to the Pollination platform to share them with others or use them within simulations.
 
-Looks like this is your first time logging in.
+To push a recipe called `my-cool-recipe` to Pollination platform use:
 
-To interract with Pollination you need to save authentication credentials in C:\Users\ladybugbot\.queenbee
+> queenbee pollination push recipe path/to/my-cool-recipe
 
-This tool will walk you through this process:
-        
-Enter your API Token:
-Logging in using api tokens...
-Success!
+You can push a recipe or operator too a specific pollination account by specifying the `--owner` flag. You can overwrite the resource's tag by using the `--tag` flag. Here is an example of pushing the `honeybee-radiance` operator to the `ladybug-tools` account and specifying a tag of `v0.0.0`.
 
-Hi ladybugbot@ladybugtools.com! Welcome to Queenbee Pollination!
+> queenbee pollination push operator ../garden/operators/honeybee-radiance --tag v0.0.0 --owner ladybug-tools
 
-You can now run queenbee pollination commands as an authenticated user!
-Check the and modify the config file at your own risk: C:\Users\ladybugbot\.queenbee
+## Pull
 
-```
+You can pull recipes and operators from Pollination onto your machine by using the `pull` commands.
 
-You can now check the configuration file saved at the path indicated in you command line. in the case of the example above the path to the config file is: `C:\Users\ladybugbot\.queenbee`.
+You can pull the latest version of `my-cool-recipe` from your pollination account by running:
 
-## Hello World!
+> queenbee pollination pull recipe my-cool-recipe
 
-We have compiled a quick demo workflow for you to test out the queenbee-pollination plugin.
+You can pull the `honeybee-radiance` operator from the `ladybug-tools` account and tag `v0.0.0` by running:
 
-Copy and save the text below into a file called `hello.yaml`.
+> queenbee pollination pull operator honeybee-radiance --owner ladybug-tools --tag v0.0.0
 
-```yaml
-type: workflow
-name: hello-world
+**Note:** You can specify a folder to download the recipe/operator to by specifying the `--path` option flag.
 
-artifact_locations: []
 
-operators:
-- name: whalesay
-  image: docker/whalesay
+## Projects
 
-templates:
-- type: function
-  name: cowsay
-  operator: whalesay
-  inputs:
-    parameters:
-    - name: word
-  command: cowsay {{inputs.parameters.word}}
+The project section of the CLI lets users upload files to a project and schedule simulations.
 
-flow:
-  name: say-hello-world
-  tasks:
-  - name: say-hello
-    template: cowsay
-    arguments:
-      parameters:
-      - name: word
-        value: hello
-  - name: say-world
-    template: cowsay
-    dependencies: ['say-hello']
-    arguments:
-      parameters:
-      - name: word
-        value: world
-  - name: exclamate
-    template: cowsay
-    dependencies: ['say-world']
-    arguments:
-      parameters:
-      - name: word
-        value: '!'
+### Folder
 
-```
+A user can upload or delete files in a project folder. To do so use the following commands:
 
-1. Save the workflow to the Pollination platform
+#### Upload
 
-```console
-> queenbee pollination workflows create -f hello.yaml
+You can upload artifacts to a project called `test-project` by using this command:
+> queenbee pollination project upload path/to/file/or/folder --project test-project
 
-Successfully created workflow ladybugbot/hello-world
-```
+You can upload artifacts to a project belonging to another user or org:
+> queenbee pollination project upload path/to/file/or/folder --project test-project --owner ladybug-tools
 
-2. List your existing workflows
+#### Delete
 
-```console
-> queenbee pollination workflows list
+You can delete all files in a project folder:
+> queenbee pollination project delete --project test-project
 
-Owner       Name             Public
-----------  ---------------  --------
-ladybugbot  hello-world      True
+You can delete specific files in a project folder:
+> queenbee pollination project delete --project test-project --path some/subpath/to/a/file
 
-```
 
-3. Simulations can only be run within the context of a project. To create a new project, run the following command:
-```console
-> queenbee pollination projects create -n hello-world
+### Simulations
 
-Successfully created project ladybugtools/hello-world
-```
+For a given project you can list, submit or download simulations.
 
-4. Submit a simulation to run using the hello-world workflow template 
+#### List
 
-```console
-> queenbee pollination simulations submit --project hello-world --workflow ladybugtools/hello-world
+> queenbee pollination project simulation list -p test-project
 
-Successfully created simulation: 15a558e3-5978-40cc-ba2f-aeeef1874600
-```
+#### Submit
 
-5. List all running simulations
+You can submit a simulation without needing to specify any inputs (if the simulation does not require any!). The recipe to be used is specified in the following format `{owner}/{recipe-name}:{tag}`:
 
-```console
-> queenbee pollination simulations list --project hello-world
-ID                                    Status     Stated At                  Finished At
-------------------------------------  ---------  -------------------------  -------------------------
-15a558e3-5978-40cc-ba2f-aeeef1874600  Succeeded  2020-03-09 02:00:23+00:00  2020-03-09 02:01:01+00:00
+> queenbee pollination project simulation submit chuck/first-test:0.0.1 -p demo
 
-```
+If you want to specify inputs you can point to an inputs file (`json` or `yaml`) which must represent a [Queenbee Workflow Argument](https://www.ladybug.tools/queenbee/_static/redoc-workflow.html#tag/arguments_model) object.
 
-1. Retrieve all persisted simulation data to a local folder called `sim-data`.
+> queenbee pollination project simulation submit ladybug-tools/daylight-factor:latest --project demo --inputs path/to/inputs.yml
 
-```console
-> queenbee pollination simulations download --project hello-world -i 15a558e3-5978-40cc-ba2f-aeeef1874600 --folder sim-data
+#### Download
 
-No inputs  files found
-No outputs  files found
-Saved logs files to sim-data/logs
-```
+Once a simulation is complete you can download all inputs, outputs and logs to you machine. Here is an example downloading data from a simulation with an ID of `22c75263-c8ba-42d0-a1b8-bd3107eb6b51` from a project with name `demo` by using the following command:
 
-8. Inspect simulation metadata in detail. Get and save the simulation object into a file called `simulation.json` inside the `sim-data` folder.
+> queenbee pollination project simulation download --project demo  --id 22c75263-c8ba-42d0-a1b8-bd3107eb6b51
 
-```console
-> queenbee pollination simulations get --project hello-world -i 15a558e3-5978-40cc-ba2f-aeeef1874600 -f sim-data/simulation.json
-```
-
-## Artifacts
-
-You can also upload raw files to a project's folder. We call these `artifacts`. These artifacts will then be accessible to any simulation you run in this project.
-
-In the following example we will upload a radiance folder and then run a daylight-factor simulation on top of it.
-
-1. Clone the github project and move your terminal into the repository
-
-```console
-> git clone https://github.com/ladybug-tools/radiance-folder-structure/
-
-Cloning into 'radiance-folder-structure'...
-remote: Enumerating objects: 311, done.
-remote: Total 311 (delta 0), reused 0 (delta 0), pack-reused 311
-Receiving objects: 100% (311/311), 1.07 MiB | 989.00 KiB/s, done.
-Resolving deltas: 100% (87/87), done.
-
-> cd radiance-folder-structure
-```
-
-2. Upload the files to your `hello-world` project. You should be able to check them out at `https://app.pollination.cloud/projects/{your-username}/hello-world`
-
-```
-> queenbee pollination artifacts upload --project hello-world -f project_folder
-```
-
-3. Run a daylight-factor simulation using another user's workflow (it's all about sharing!)
-
-```console
-> queenbee pollination simulations submit -p hello-world -w antoinedao/daylight-factor
-
-Successfully created simulation: 5cbdcb5f-fec9-4048-8b59-5e37f8182d8e
-
-```
-
-4. Check the status of your simulation. Once the simulation you created is marked as "Succeeded" you can carry onto the next step.
-
-```console
-> queenbee pollination simulations list --project hello-world
-ID                                    Status     Stated At                  Finished At
-------------------------------------  ---------  -------------------------  -------------------------
-5cbdcb5f-fec9-4048-8b59-5e37f8182d8e  Running  2020-03-09 02:10:23+00:00  2020-03-09 02:12:01+00:00
-15a558e3-5978-40cc-ba2f-aeeef1874600  Succeeded  2020-03-09 02:00:23+00:00  2020-03-09 02:01:01+00:00
-```
-
-5. Download your results and start analysing them using whatever tool you like!
-
-```console
-> queenbee pollination simulations download --project hello-world -i 5cbdcb5f-fec9-4048-8b59-5e37f8182d8e --folder daylight-factor-data
-
-Saved inputs files to daylight-factor-data/logs
-Saved outputs files to daylight-factor-data/logs
-Saved logs files to daylight-factor-data/logs
-
-> queenbee pollination simulations get --project hello-world -i 5cbdcb5f-fec9-4048-8b59-5e37f8182d8e -f daylight-factor-data/simulation.json
-```
