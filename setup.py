@@ -1,6 +1,4 @@
-import re
 import setuptools
-import sys
 
 with open('README.md') as fh:
     long_description = fh.read()
@@ -10,7 +8,7 @@ with open('requirements.txt') as f:
 
 setuptools.setup(
     name="queenbee_pollination",
-    use_scm_version = True,
+    use_scm_version=True,
     setup_requires=['setuptools_scm'],
     author="Ladybug Tools",
     author_email="info@ladybug.tools",
@@ -28,7 +26,7 @@ setuptools.setup(
         pollination=queenbee_pollination.cli:pollination
     ''',
     classifiers=[
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: Implementation :: CPython",
         "Operating System :: OS Independent"
     ],
