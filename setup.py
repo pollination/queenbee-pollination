@@ -6,6 +6,9 @@ with open('README.md') as fh:
 with open('requirements.txt') as f:
     requirements = f.read().splitlines()
 
+with open('cli-requirements.txt') as f:
+    cli_requirements = f.read().splitlines()
+
 setuptools.setup(
     name="queenbee_pollination",
     use_scm_version=True,
@@ -18,9 +21,7 @@ setuptools.setup(
     url="https://github.com/pollination/queenbee-pollination",
     packages=setuptools.find_packages(exclude=["tests", "hack", "docs"]),
     install_requires=requirements,
-    extras_require={
-        'cli': ['click>=7.0', 'click_plugins==1.1.1']
-    },
+    extras_require={'cli': cli_requirements},
     entry_points='''
         [queenbee.plugins]
         pollination=queenbee_pollination.cli:pollination
