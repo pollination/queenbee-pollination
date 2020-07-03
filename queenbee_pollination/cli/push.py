@@ -19,7 +19,7 @@ except ImportError:
     )
 
 
-def handle_repository(client: Client, repo_type: str, owner: str, name: str):
+def handle_repository(client: Client, repo_type: str, owner: str, name: str, create_repo: bool = False):
 
     if repo_type not in ['recipe', 'operator']:
         raise click.ClickException('Repository type should be one of ["recipe", "operator"]')
@@ -39,38 +39,45 @@ def handle_repository(client: Client, repo_type: str, owner: str, name: str):
         if error.status != 404:
             raise click.ClickException(error)
 
-        if click.confirm(
-            f'{repo_type} repository not found. Do you want to create a new repository at {owner}/{name}',
-            abort=True
-        ):
-            private = click.confirm(
-                'Do you want to create a private repository?'),
-
-            public = True
-
-            if private is True:
-                public = False
-
+        if create_repo:
             new_repo = NewRepositoryDto(
-                public=public,
+                public=True,
                 name=name,
             )
 
-            try:
-                if repo_type == 'recipe':
-                    client.recipes.create_recipe(
-                        owner=owner,
-                        new_repository_dto=new_repo,
-                    )
-                elif repo_type == 'operator':
-                    client.operators.create_operator(
-                        owner=owner,
-                        new_repository_dto=new_repo,
-                    )
-            except ApiException as error:
-                raise click.ClickException(error)
+        else:
+            if click.confirm(
+                f'{repo_type} repository not found. Do you want to create a new repository at {owner}/{name}',
+                abort=True
+            ):
+                private = click.confirm(
+                    'Do you want to create a private repository?'),
 
-            click.echo('Successfully created repository!')
+                public = True
+
+                if private is True:
+                    public = False
+
+                new_repo = NewRepositoryDto(
+                    public=public,
+                    name=name,
+                )
+
+        try:
+            if repo_type == 'recipe':
+                client.recipes.create_recipe(
+                    owner=owner,
+                    new_repository_dto=new_repo,
+                )
+            elif repo_type == 'operator':
+                client.operators.create_operator(
+                    owner=owner,
+                    new_repository_dto=new_repo,
+                )
+        except ApiException as error:
+            raise click.ClickException(error)
+
+        click.echo('Successfully created repository!')
 
 
 @click.group('push')
@@ -82,7 +89,8 @@ def push():
 @click.argument('path', type=click.Path(exists=True))
 @click.option('-o', '--owner', help='a pollination account name')
 @click.option('-t', '--tag', help='tag to apply to the recipe')
-def recipe(path, owner, tag):
+@click.option('--create-repo', help='create the recipe repository if it does not exist (defaults to a public repo)', type=bool, default=False, is_flag=True)
+def recipe(path, owner, tag, create_repo):
     """push a queenbee recipe to the pollination registry
 
     This subcommand pushes a packaged queenbee recipe to a registry on 
@@ -109,6 +117,7 @@ def recipe(path, owner, tag):
         repo_type='recipe',
         owner=owner,
         name=manifest.metadata.name,
+        create_repo=create_repo
     )
 
     if tag is not None:
@@ -145,7 +154,8 @@ def recipe(path, owner, tag):
 @click.argument('path', type=click.Path(exists=True))
 @click.option('-o', '--owner', help='a pollination account name')
 @click.option('-t', '--tag', help='tag to apply to the operator')
-def operator(path, owner, tag):
+@click.option('--create-repo', help='create the operator repository if it does not exist (defaults to a public repo)', type=bool, default=False, is_flag=True)
+def operator(path, owner, tag, create_repo):
     """push a queenbee operator to the pollination registry
 
     This subcommand pushes a packaged queenbee operator to a registry on 
@@ -172,6 +182,7 @@ def operator(path, owner, tag):
         repo_type='operator',
         owner=owner,
         name=manifest.metadata.name,
+        create_repo=create_repo
     )
 
     if tag is not None:
