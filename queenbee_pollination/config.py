@@ -2,6 +2,7 @@ from pydantic import BaseSettings, Field
 
 from .client import Client
 
+
 class Config(BaseSettings):
 
     endpoint: str = Field(
@@ -9,7 +10,6 @@ class Config(BaseSettings):
         description='The API endpoint to use when making API calls',
         env='QB_POLLINATION_ENDPOINT',
     )
-
 
     token: str = Field(
         None,
@@ -21,7 +21,6 @@ class Config(BaseSettings):
         None,
         description='The JWT token used too authenticate to the API',
     )
-
 
     def get_client(self) -> Client:
         try:

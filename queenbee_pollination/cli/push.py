@@ -1,5 +1,3 @@
-import os
-
 from pydantic import ValidationError
 
 from queenbee.recipe import Recipe
@@ -93,7 +91,7 @@ def push():
 def recipe(path, owner, tag, create_repo):
     """push a queenbee recipe to the pollination registry
 
-    This subcommand pushes a packaged queenbee recipe to a registry on 
+    This subcommand pushes a packaged queenbee recipe to a registry on
     pollination cloud
     """
     ctx = click.get_current_context()
@@ -158,7 +156,7 @@ def recipe(path, owner, tag, create_repo):
 def operator(path, owner, tag, create_repo):
     """push a queenbee operator to the pollination registry
 
-    This subcommand pushes a packaged queenbee operator to a registry on 
+    This subcommand pushes a packaged queenbee operator to a registry on
     pollination cloud
     """
     ctx = click.get_current_context()

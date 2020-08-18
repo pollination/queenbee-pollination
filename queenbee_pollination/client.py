@@ -2,9 +2,7 @@ import pollination_sdk as sdk
 
 
 class Client(object):
-    """A Pollination client designed to interact with Workflow and Simulation objects
-
-    """
+    """A Pollination client designed to interact with Workflow and Simulation objects."""
 
     def __init__(self, api_token=None, access_token=None, host='https://api.pollination.cloud'):
         config = sdk.Configuration()
