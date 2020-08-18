@@ -1,8 +1,6 @@
 import os
 import shutil
 
-from pydantic import ValidationError
-
 from queenbee.recipe import Recipe
 from queenbee.operator import Operator
 from queenbee.repository.package import RecipeVersion, OperatorVersion
@@ -75,7 +73,7 @@ def recipe(name, owner, tag, path, force):
     except FileExistsError as error:
         if not force:
             raise click.ClickException(f'Folder already exists at path {path}. Use "--force" to overwrite it.')
-        
+
         shutil.rmtree(path)
 
         manifest.to_folder(
@@ -83,7 +81,7 @@ def recipe(name, owner, tag, path, force):
             readme_string=res['readme'],
             license_string=res['license'],
         )
-        
+
     click.echo(f'Recipe {owner}/{name}:{tag} saved to {path}')
 
 
@@ -139,7 +137,7 @@ def operator(name, owner, tag, path, force):
             readme_string=res['readme'],
             license_string=res['license'],
         )
-    except FileExistsError as error:
+    except FileExistsError:
         if not force:
             raise click.ClickException(f'Folder already exists at path {path}')
 

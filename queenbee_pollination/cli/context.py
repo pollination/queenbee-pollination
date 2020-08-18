@@ -5,6 +5,7 @@ from queenbee.config import Config as QueenbeeConfig
 from ..config import Config as QueenbeePollinationConfig
 from ..client import Client
 
+
 class Context(BaseModel):
 
     queenbee: QueenbeeConfig = Field(
@@ -25,4 +26,3 @@ class Context(BaseModel):
         if auth_header is not None:
             self.config.jwt_token = auth_header.split('Bearer ')[-1]
         return self.config.get_client()
-

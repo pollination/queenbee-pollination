@@ -5,7 +5,6 @@ import tarfile
 from urllib3.exceptions import ProtocolError
 
 import requests
-from pydantic import ValidationError
 from tabulate import tabulate
 
 from queenbee.workflow import Arguments
@@ -177,7 +176,7 @@ def submit(project, recipe, owner, inputs):
     try:
         rec_owner, rec_name = recipe.split('/')
         rec_name, rec_tag = rec_name.split(':')
-    except ValueError as error:
+    except ValueError:
         click.ClickException(f'Expected recipe reference in format "owner/name:tag" not: {recipe}')
 
     recipe_ref = models.RecipeSelection(
@@ -187,7 +186,7 @@ def submit(project, recipe, owner, inputs):
     )
 
     arguments = Arguments()
-    
+
     if inputs is not None:
         arguments = Arguments.from_file(inputs)
 
@@ -320,8 +319,7 @@ def download_simulation_artifacts(owner, project, id, folder, artifact):
                 click.echo(f'Failed to read {a}')
             os.remove(f'{folder}.tar.gz')
 
-
-        except ProtocolError as e:
+        except ProtocolError:
             click.echo(f'No {a}  files found')
 
     status = WorkflowStatus.parse_obj(simulation.to_dict())
@@ -329,4 +327,3 @@ def download_simulation_artifacts(owner, project, id, folder, artifact):
     status.to_yaml(
         filepath=os.path.join(folder, 'simulation.yml')
     )
-    
