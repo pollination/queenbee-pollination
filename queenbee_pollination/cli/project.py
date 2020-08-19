@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor as PoolExecutor
 from multiprocessing import cpu_count
 import tarfile
 from urllib3.exceptions import ProtocolError
+from typing import List
 
 import requests
 from tabulate import tabulate
@@ -120,6 +121,70 @@ def upload_folder(path, owner, project):
         for _ in executor.map(_upload_artifact, keys):
             pass
 
+@folder.command('download')
+@click.option('-p', '--project', help='project name', type=str, required=True)
+@click.option('-o', '--owner', help='a pollination account name')
+@click.option('--path', help='the subpath/subfolder to download')
+@click.option('-l', '--local-path', help='the path to save the files at on the local machine')
+def download_artifacts(project, owner, path, local_path):
+    """download project files"""
+    if path is not None:
+        path = [path]
+
+    ctx = click.get_current_context()
+    client = ctx.obj.get_client()
+
+    if owner is None:
+        account = client.get_account()
+        owner = account.username
+
+    handle_project(
+        client=client,
+        owner=owner,
+        name=project,
+    )
+
+    if local_path is None:
+        local_path = os.getcwd()
+
+    if path is not None:
+        path = [path]
+
+    def recusrive_download(owner: str, name: str, local_path: str, path: List[str] = None):
+
+        files = client.artifacts.list_artifacts(owner=owner, name=name, path=path)
+        print(files)
+
+        for file in files:
+
+            if file.type == 'folder':
+                return recusrive_download(
+                    owner=owner,
+                    name=name,
+                    path=[file.key],
+                    local_path=os.path.join(local_path, file.file_name)
+                )
+
+            download_link = client.artifacts.download_artifact(owner=owner, name=project, path=path)
+
+            response = requests.get(url=download_link)
+
+            file_path = os.path.join(local_path, file.file_name)
+            file_dir = os.path.dirname(file_path)
+            if not os.path.exists(file_dir):
+                os.makedirs(os.path.dirname(file_path))
+            
+            with open(file_path, 'wb') as f:
+                f.write(response.content)
+
+    
+    recusrive_download(
+        owner=owner,
+        name=project,
+        path=path,
+        local_path=local_path
+    )
+ 
 
 @folder.command('delete')
 @click.option('-p', '--project', help='project name', type=str, required=True)
