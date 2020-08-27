@@ -153,29 +153,27 @@ def download_artifacts(project, owner, path, local_path):
     def recusrive_download(owner: str, name: str, local_path: str, path: List[str] = None):
 
         files = client.artifacts.list_artifacts(owner=owner, name=name, path=path)
-        print(files)
 
         for file in files:
-
             if file.type == 'folder':
-                return recusrive_download(
+                recusrive_download(
                     owner=owner,
                     name=name,
                     path=[file.key],
                     local_path=os.path.join(local_path, file.file_name)
                 )
+            else:
+                download_link = client.artifacts.download_artifact(owner=owner, name=project, path=file.key)
 
-            download_link = client.artifacts.download_artifact(owner=owner, name=project, path=path)
+                response = requests.get(url=download_link)
 
-            response = requests.get(url=download_link)
-
-            file_path = os.path.join(local_path, file.file_name)
-            file_dir = os.path.dirname(file_path)
-            if not os.path.exists(file_dir):
-                os.makedirs(os.path.dirname(file_path))
-            
-            with open(file_path, 'wb') as f:
-                f.write(response.content)
+                file_path = os.path.join(local_path, file.file_name)
+                file_dir = os.path.dirname(file_path)
+                if not os.path.exists(file_dir):
+                    os.makedirs(os.path.dirname(file_path))
+                
+                with open(file_path, 'wb') as f:
+                    f.write(response.content)
 
     
     recusrive_download(
