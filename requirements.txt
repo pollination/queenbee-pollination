@@ -1,4 +1,4 @@
-queenbee==1.16.2
+queenbee==1.17.3
 pollination-sdk==0.6.7
 tabulate==0.8.7
 requests==2.24.0
