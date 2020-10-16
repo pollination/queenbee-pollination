@@ -2,10 +2,10 @@ from pydantic import ValidationError
 
 from queenbee.recipe import Recipe
 from queenbee.operator import Operator
-from queenbee.repository.package import RecipeVersion, OperatorVersion
+from queenbee.repository.package import PackageVersion
 
 from pollination_sdk.exceptions import ApiException
-from pollination_sdk.models import NewRepositoryDto
+from pollination_sdk.models import RepositoryCreate
 
 from ..client import Client
 
@@ -38,7 +38,7 @@ def handle_repository(client: Client, repo_type: str, owner: str, name: str, cre
             raise click.ClickException(error)
 
         if create_repo:
-            new_repo = NewRepositoryDto(
+            new_repo = RepositoryCreate(
                 public=True,
                 name=name,
             )
@@ -56,7 +56,7 @@ def handle_repository(client: Client, repo_type: str, owner: str, name: str, cre
                 if private is True:
                     public = False
 
-                new_repo = NewRepositoryDto(
+                new_repo = RepositoryCreate(
                     public=public,
                     name=name,
                 )
@@ -121,8 +121,8 @@ def recipe(path, owner, tag, create_repo):
     if tag is not None:
         manifest.metadata.tag = tag
 
-    readme_string = RecipeVersion.read_readme(path)
-    license_string = RecipeVersion.read_license(path)
+    readme_string = PackageVersion.read_readme(path)
+    license_string = PackageVersion.read_license(path)
 
     if readme_string is None:
         readme_string = ''
@@ -186,8 +186,8 @@ def operator(path, owner, tag, create_repo):
     if tag is not None:
         manifest.metadata.tag = tag
 
-    readme_string = RecipeVersion.read_readme(path)
-    license_string = RecipeVersion.read_license(path)
+    readme_string = PackageVersion.read_readme(path)
+    license_string = PackageVersion.read_license(path)
 
     if readme_string is None:
         readme_string = ''

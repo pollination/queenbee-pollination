@@ -20,7 +20,7 @@ class Context(BaseModel):
     def get_client(self) -> Client:
         self.queenbee.refresh_tokens()
         auth_header = self.queenbee.config.get_auth_header(
-            registry_url=self.config.endpoint
+            repository_url=self.config.endpoint
         )
 
         if auth_header is not None:

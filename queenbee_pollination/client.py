@@ -11,7 +11,7 @@ class Client(object):
         auth = sdk.UserApi(sdk.ApiClient(config))
 
         if access_token is None:
-            api_token = sdk.LoginDto(
+            api_token = sdk.Login(
                 api_token=api_token
             )
 
@@ -34,5 +34,5 @@ class Client(object):
         self.artifacts = sdk.ArtifactsApi(sdk.ApiClient(config))
         self.projects = sdk.ProjectsApi(sdk.ApiClient(config))
 
-    def get_account(self) -> sdk.models.PrivateUserDto:
+    def get_account(self) -> sdk.models.UserPrivate:
         return self.auth.get_me()

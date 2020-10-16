@@ -46,7 +46,7 @@ def handle_project(client: Client, owner: str, name: str):
             if private is True:
                 public = False
 
-            new_project = models.PatchProjectDto(
+            new_project = models.ProjectCreate(
                 name=name,
                 public=public,
                 description=''
@@ -253,7 +253,7 @@ def submit(project, recipe, owner, inputs):
     if inputs is not None:
         arguments = Arguments.from_file(inputs)
 
-    submit = models.SubmitSimulationDto(
+    submit = models.SubmitSimulation(
         recipe=recipe_ref,
         inputs=arguments.to_dict()
     )
@@ -262,7 +262,7 @@ def submit(project, recipe, owner, inputs):
         res = client.simulations.create_simulation(
             owner=owner,
             name=project,
-            submit_simulation_dto=submit,
+            submit_simulation=submit,
         )
     except ApiException as error:
         raise click.ClickException(error)
