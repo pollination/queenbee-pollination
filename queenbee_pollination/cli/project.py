@@ -8,8 +8,7 @@ from typing import List
 import requests
 from tabulate import tabulate
 
-from queenbee.workflow import Arguments
-from queenbee.workflow.status import WorkflowStatus
+from queenbee.job import Job
 
 from pollination_sdk.exceptions import ApiException
 from pollination_sdk import models
@@ -210,18 +209,17 @@ def delete_artifacts(project, owner, path):
     print("Poof... All gone!")
 
 
-@project.group('simulation')
-def simulation():
+@project.group('job')
+def job():
     pass
 
 
-@simulation.command('submit')
-@click.argument('recipe', type=str)
+@job.command('submit')
+@click.argument('job file', type=click.Path(exists=True))
 @click.option('-p', '--project', help='project name', type=str, required=True)
 @click.option('-o', '--owner', help='a pollination account name')
-@click.option('-i', '--inputs', help='path to an inputs file', type=click.Path(exists=True))
-def submit(project, recipe, owner, inputs):
-    """Schedule a simulation to be run"""
+def submit(project, owner, job_file):
+    """Schedule a job to be run"""
 
     ctx = click.get_current_context()
     client = ctx.obj.get_client()
@@ -236,47 +234,27 @@ def submit(project, recipe, owner, inputs):
         name=project,
     )
 
-    try:
-        rec_owner, rec_name = recipe.split('/')
-        rec_name, rec_tag = rec_name.split(':')
-    except ValueError:
-        click.ClickException(f'Expected recipe reference in format "owner/name:tag" not: {recipe}')
-
-    recipe_ref = models.RecipeSelection(
-        owner=rec_owner,
-        name=rec_name,
-        tag=rec_tag,
-    )
-
-    arguments = Arguments()
-
-    if inputs is not None:
-        arguments = Arguments.from_file(inputs)
-
-    submit = models.SubmitSimulation(
-        recipe=recipe_ref,
-        inputs=arguments.to_dict()
-    )
+    job = Job.from_file(job_file)
 
     try:
-        res = client.simulations.create_simulation(
+        res = client.jobs.create_job(
             owner=owner,
             name=project,
-            submit_simulation=submit,
+            job=job.dict(),
         )
     except ApiException as error:
         raise click.ClickException(error)
 
-    click.echo(f'Successfully scheduled simulation: {res.id}')
+    click.echo(f'Successfully scheduled job: {res.id}')
 
 
 
-@simulation.command('list')
+@job.command('list')
 @click.option('-p', '--project', type=str, required=True)
 @click.option('-o', '--owner', help='a pollination account name')
 @click.option('--page', type=int, default=1, show_default=True)
-def list_simulations(project, owner, page):
-    """List simulations for a given project"""
+def list_jobs(project, owner, page):
+    """List jobs for a given project"""
 
     ctx = click.get_current_context()
     client = ctx.obj.get_client()
@@ -286,7 +264,7 @@ def list_simulations(project, owner, page):
         owner = account.username
 
     try:
-        res = client.simulations.list_simulations(
+        res = client.jobs.list_jobs(
             owner=owner,
             name=project,
             page=page,
@@ -294,99 +272,9 @@ def list_simulations(project, owner, page):
     except ApiException as error:
         raise click.ClickException(error)
 
-    table = [[sim.id, sim.status, sim.started_at, sim.finished_at] for sim in res.resources]
+    table = [[run.status.id, run.status.status, run.status.started_at, run.status.finished_at] for run in res.resources]
 
     table.sort(key=lambda r: r[2], reverse=True)
 
     print(tabulate(table, headers=['ID', 'Status', 'Stated At', 'Finished At']))
 
-
-@simulation.command('download')
-@click.option('-p', '--project', help='Name of a project', required=True)
-@click.option('-i', '--id', help='ID of the simulation your want to retrieve artifacts from', required=True)
-@click.option('-o', '--owner', help='a pollination account name')
-@click.option('-f', '--folder', help='Folder path to save simulation artifacts to', default='.', show_default=True)
-@click.option('-a', '--artifact', help='Choose which artifacts to download. Will download all if not specified.', type=click.Choice(['inputs', 'outputs', 'logs'], case_sensitive=False))
-def download_simulation_artifacts(owner, project, id, folder, artifact):
-    """download simulation artifacts"""
-
-    ctx = click.get_current_context()
-    client = ctx.obj.get_client()
-
-    if owner is None:
-        account = client.get_account()
-        owner = account.username
-
-    folder = os.path.join(folder, id)
-
-    if artifact is None:
-        artifacts = ['inputs', 'outputs', 'logs']
-    else:
-        artifacts = [artifact]
-
-    try:
-        simulation = client.simulations.get_simulation(
-            owner=owner,
-            name=project,
-            simulation_id=id,
-        )
-    except ApiException as error:
-        if error.status == 404:
-            raise click.ClickException(
-                f'Simulation not found: {owner}/{project}/{id}')
-        raise click.ClickException(error)
-
-    for a in artifacts:
-
-        if a == 'inputs':
-            try:
-                fetch_url = client.simulations.get_simulation_inputs(
-                    owner=owner,
-                    name=project,
-                    simulation_id=id,
-                )
-            except ApiException as error:
-                raise click.ClickException(error)
-
-        elif a == 'outputs':
-            try:
-                fetch_url = client.simulations.get_simulation_outputs(
-                    owner=owner,
-                    name=project,
-                    simulation_id=id,
-                )
-            except ApiException as error:
-                raise click.ClickException(error)
-
-        elif a == 'logs':
-            try:
-                fetch_url = client.simulations.get_simulation_logs(
-                    owner=owner,
-                    name=project,
-                    simulation_id=id,
-                )
-            except ApiException as error:
-                raise click.ClickException(error)
-
-        response = requests.get(url=fetch_url)
-
-        try:
-            with open(f'{folder}.tar.gz', 'wb') as f:
-                f.write(response.content)
-
-            try:
-                tar = tarfile.open(name=f'{folder}.tar.gz')
-                tar.extractall(f'{folder}')
-                click.echo(f'Saved {a} files to {folder}/{a}')
-            except tarfile.ReadError as error:
-                click.echo(f'Failed to read {a}')
-            os.remove(f'{folder}.tar.gz')
-
-        except ProtocolError:
-            click.echo(f'No {a}  files found')
-
-    status = WorkflowStatus.parse_obj(simulation.to_dict())
-
-    status.to_yaml(
-        filepath=os.path.join(folder, 'simulation.yml')
-    )

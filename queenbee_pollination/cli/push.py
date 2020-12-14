@@ -1,7 +1,7 @@
 from pydantic import ValidationError
 
 from queenbee.recipe import Recipe
-from queenbee.operator import Operator
+from queenbee.plugin import Plugin
 from queenbee.repository.package import PackageVersion
 
 from pollination_sdk.exceptions import ApiException
@@ -19,8 +19,8 @@ except ImportError:
 
 def handle_repository(client: Client, repo_type: str, owner: str, name: str, create_repo: bool = False):
 
-    if repo_type not in ['recipe', 'operator']:
-        raise click.ClickException('Repository type should be one of ["recipe", "operator"]')
+    if repo_type not in ['recipe', 'plugin']:
+        raise click.ClickException('Repository type should be one of ["recipe", "plugin"]')
 
     try:
         if repo_type == 'recipe':
@@ -28,8 +28,8 @@ def handle_repository(client: Client, repo_type: str, owner: str, name: str, cre
                 owner=owner,
                 name=name,
             )
-        elif repo_type == 'operator':
-            client.operators.get_operator(
+        elif repo_type == 'plugin':
+            client.plugins.get_plugin(
                 owner=owner,
                 name=name,
             )
@@ -61,19 +61,19 @@ def handle_repository(client: Client, repo_type: str, owner: str, name: str, cre
                     name=name,
                 )
 
-        try:
-            if repo_type == 'recipe':
-                client.recipes.create_recipe(
-                    owner=owner,
-                    new_repository_dto=new_repo,
-                )
-            elif repo_type == 'operator':
-                client.operators.create_operator(
-                    owner=owner,
-                    new_repository_dto=new_repo,
-                )
-        except ApiException as error:
-            raise click.ClickException(error)
+        # try:
+        #     if repo_type == 'recipe':
+        #         client.recipes.create_recipe(
+        #             owner=owner,
+        #             repository_create=new_repo,
+        #         )
+        #     elif repo_type == 'plugin':
+        #         client.plugins.create_plugin(
+        #             owner=owner,
+        #             repository_create=new_repo,
+        #         )
+        # except ApiException as error:
+        #     raise click.ClickException(error)
 
         click.echo('Successfully created repository!')
 
@@ -122,18 +122,13 @@ def recipe(path, owner, tag, create_repo):
         manifest.metadata.tag = tag
 
     readme_string = PackageVersion.read_readme(path)
-    license_string = PackageVersion.read_license(path)
 
     if readme_string is None:
         readme_string = ''
 
-    if license_string is None:
-        license_string = ''
-
     new_package = {
         'manifest': manifest.to_dict(),
         'readme': readme_string,
-        'license': license_string
     }
 
     try:
@@ -148,15 +143,15 @@ def recipe(path, owner, tag, create_repo):
     click.echo(f'Successfully created new recipe package {owner}/{manifest.metadata.name}:{manifest.metadata.tag}')
 
 
-@push.command('operator')
+@push.command('plugin')
 @click.argument('path', type=click.Path(exists=True))
 @click.option('-o', '--owner', help='a pollination account name')
-@click.option('-t', '--tag', help='tag to apply to the operator')
-@click.option('--create-repo', help='create the operator repository if it does not exist (defaults to a public repo)', type=bool, default=False, is_flag=True)
-def operator(path, owner, tag, create_repo):
-    """push a queenbee operator to the pollination registry
+@click.option('-t', '--tag', help='tag to apply to the plugin')
+@click.option('--create-repo', help='create the plugin repository if it does not exist (defaults to a public repo)', type=bool, default=False, is_flag=True)
+def plugin(path, owner, tag, create_repo):
+    """push a queenbee plugin to the pollination registry
 
-    This subcommand pushes a packaged queenbee operator to a registry on
+    This subcommand pushes a packaged queenbee plugin to a registry on
     pollination cloud
     """
     ctx = click.get_current_context()
@@ -167,7 +162,7 @@ def operator(path, owner, tag, create_repo):
         owner = account.username
 
     try:
-        manifest = Operator.from_folder(path)
+        manifest = Plugin.from_folder(path)
     except ValidationError as error:
         raise click.ClickException(error)
     except FileNotFoundError as error:
@@ -177,7 +172,7 @@ def operator(path, owner, tag, create_repo):
 
     handle_repository(
         client=client,
-        repo_type='operator',
+        repo_type='plugin',
         owner=owner,
         name=manifest.metadata.name,
         create_repo=create_repo
@@ -187,28 +182,23 @@ def operator(path, owner, tag, create_repo):
         manifest.metadata.tag = tag
 
     readme_string = PackageVersion.read_readme(path)
-    license_string = PackageVersion.read_license(path)
 
     if readme_string is None:
         readme_string = ''
 
-    if license_string is None:
-        license_string = ''
-
     new_package = {
         'manifest': manifest.to_dict(),
         'readme': readme_string,
-        'license': license_string
     }
 
     try:
-        client.operators.create_operator_package(
+        client.plugins.create_plugin_package(
             owner=owner,
             name=manifest.metadata.name,
-            new_operator_package=new_package,
+            new_plugin_package=new_package,
         )
     except ApiException as error:
         raise click.ClickException(error)
 
     click.echo(
-        f'Successfully created new operator package {owner}/{manifest.metadata.name}:{manifest.metadata.tag}')
+        f'Successfully created new plugin package {owner}/{manifest.metadata.name}:{manifest.metadata.tag}')

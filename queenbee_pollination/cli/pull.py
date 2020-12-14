@@ -2,7 +2,7 @@ import os
 import shutil
 
 from queenbee.recipe import Recipe
-from queenbee.operator import Operator
+from queenbee.plugin import Plugin
 from queenbee.repository.package import PackageVersion
 
 from pollination_sdk.exceptions import ApiException
@@ -68,7 +68,6 @@ def recipe(name, owner, tag, path, force):
         manifest.to_folder(
             folder_path=path,
             readme_string=res['readme'],
-            license_string=res['license'],
         )
     except FileExistsError as error:
         if not force:
@@ -79,20 +78,19 @@ def recipe(name, owner, tag, path, force):
         manifest.to_folder(
             folder_path=path,
             readme_string=res['readme'],
-            license_string=res['license'],
         )
 
     click.echo(f'Recipe {owner}/{name}:{tag} saved to {path}')
 
 
-@pull.command('operator')
+@pull.command('plugin')
 @click.argument('name')
 @click.option('-o', '--owner', help='a pollination account name')
 @click.option('-t', '--tag', help='specific recipe tag to pull')
-@click.option('-p', '--path', help='path to download the operator to', type=click.Path(exists=True), default='.')
+@click.option('-p', '--path', help='path to download the plugin to', type=click.Path(exists=True), default='.')
 @click.option('-f', '--force', help='overwrite local files', type=bool, default=False, is_flag=True)
-def operator(name, owner, tag, path, force):
-    """download an operator from a pollination registry"""
+def plugin(name, owner, tag, path, force):
+    """download an plugin from a pollination registry"""
 
     ctx = click.get_current_context()
     client = ctx.obj.get_client()
@@ -106,19 +104,19 @@ def operator(name, owner, tag, path, force):
 
     if tag is None:
         try:
-            res = client.operators.get_operator(
+            res = client.plugins.get_plugin(
                 owner=owner,
                 name=name,
             )
         except ApiException as error:
             if error.status == 404:
-                raise click.ClickException(f'Operator not found: {owner}/{name}')
+                raise click.ClickException(f'Plugin not found: {owner}/{name}')
             raise click.ClickException(error)
 
         tag = res['latest_tag']
 
     try:
-        res = client.operators.get_operator_tag(
+        res = client.plugins.get_plugin_tag(
             owner=owner,
             name=name,
             tag=tag
@@ -126,16 +124,15 @@ def operator(name, owner, tag, path, force):
     except ApiException as error:
         if error.status == 404:
             raise click.ClickException(
-                f'Operator not found: {owner}/{name}:{tag}')
+                f'Plugin not found: {owner}/{name}:{tag}')
         raise click.ClickException(error)
 
-    manifest = Operator.parse_obj(res['manifest'])
+    manifest = Plugin.parse_obj(res['manifest'])
 
     try:
         manifest.to_folder(
             folder_path=path,
             readme_string=res['readme'],
-            license_string=res['license'],
         )
     except FileExistsError:
         if not force:
@@ -146,7 +143,6 @@ def operator(name, owner, tag, path, force):
         manifest.to_folder(
             folder_path=path,
             readme_string=res['readme'],
-            license_string=res['license'],
         )
 
-    click.echo(f'Operator {owner}/{name}:{tag} saved to {path}')
+    click.echo(f'Plugin {owner}/{name}:{tag} saved to {path}')
