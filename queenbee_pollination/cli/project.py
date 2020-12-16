@@ -215,7 +215,7 @@ def job():
 
 
 @job.command('submit')
-@click.argument('job file', type=click.Path(exists=True))
+@click.argument('job_file', type=click.Path(exists=True))
 @click.option('-p', '--project', help='project name', type=str, required=True)
 @click.option('-o', '--owner', help='a pollination account name')
 def submit(project, owner, job_file):
