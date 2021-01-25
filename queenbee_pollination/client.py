@@ -15,7 +15,7 @@ class Client(object):
         self.auth = sdk.UserApi(sdk.ApiClient(config))
         self.recipes = sdk.RecipesApi(sdk.ApiClient(config))
         self.plugins = sdk.PluginsApi(sdk.ApiClient(config))
-        self.jobs = sdk.JobsApi(sdk.ApiClient(config))
+        self.runs = sdk.RunsApi(sdk.ApiClient(config))
         self.artifacts = sdk.ArtifactsApi(sdk.ApiClient(config))
         self.projects = sdk.ProjectsApi(sdk.ApiClient(config))
 

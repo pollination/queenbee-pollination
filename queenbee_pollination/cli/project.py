@@ -209,12 +209,12 @@ def delete_artifacts(project, owner, path):
     print("Poof... All gone!")
 
 
-@project.group('job')
-def job():
+@project.group('run')
+def run():
     pass
 
 
-@job.command('submit')
+@run.command('submit')
 @click.argument('job_file', type=click.Path(exists=True))
 @click.option('-p', '--project', help='project name', type=str, required=True)
 @click.option('-o', '--owner', help='a pollination account name')
@@ -237,7 +237,7 @@ def submit(project, owner, job_file):
     job = Job.from_file(job_file)
 
     try:
-        res = client.jobs.create_job(
+        res = client.runs.create_run(
             owner=owner,
             name=project,
             job=job.dict(),
@@ -249,12 +249,12 @@ def submit(project, owner, job_file):
 
 
 
-@job.command('list')
+@run.command('list')
 @click.option('-p', '--project', type=str, required=True)
 @click.option('-o', '--owner', help='a pollination account name')
 @click.option('--page', type=int, default=1, show_default=True)
-def list_jobs(project, owner, page):
-    """List jobs for a given project"""
+def list_runs(project, owner, page):
+    """List runs for a given project"""
 
     ctx = click.get_current_context()
     client = ctx.obj.get_client()
@@ -264,7 +264,7 @@ def list_jobs(project, owner, page):
         owner = account.username
 
     try:
-        res = client.jobs.list_jobs(
+        res = client.runs.list_runs(
             owner=owner,
             name=project,
             page=page,
