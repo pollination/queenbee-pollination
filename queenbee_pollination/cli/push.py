@@ -98,13 +98,13 @@ def push():
     ' a private recipe. This option does not change the visibility of a recipe if it '
     ' has already been created.', is_flag=True, default=True
 )
-def recipe(path, owner, tag, create_repo, public):
+@click.pass_context
+def recipe(ctx, path, owner, tag, create_repo, public):
     """push a queenbee recipe to the pollination registry
 
     This subcommand pushes a packaged queenbee recipe to a registry on
     pollination cloud
     """
-    ctx = click.get_current_context()
     client = ctx.obj.get_client()
 
     if owner is None:
@@ -166,13 +166,13 @@ def recipe(path, owner, tag, create_repo, public):
     ' a private plugin. This option does not change the visibility of a plugin if it '
     ' has already been created.', is_flag=True, default=True
 )
-def plugin(path, owner, tag, create_repo, public):
+@click.pass_context
+def plugin(ctx, path, owner, tag, create_repo, public):
     """push a queenbee plugin to the pollination registry
 
     This subcommand pushes a packaged queenbee plugin to a registry on
     pollination cloud
     """
-    ctx = click.get_current_context()
     client = ctx.obj.get_client()
 
     if owner is None:
