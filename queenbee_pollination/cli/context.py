@@ -19,7 +19,7 @@ class Context(BaseModel):
 
     def get_client(self) -> Client:
         self.queenbee.refresh_tokens()
-        auth_header = self.queenbee.config.get_auth_header(
+        auth_header = self.queenbee.get_auth_header(
             repository_url=self.config.endpoint
         )
 
