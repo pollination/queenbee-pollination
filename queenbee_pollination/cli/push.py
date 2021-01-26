@@ -17,7 +17,10 @@ except ImportError:
     )
 
 
-def handle_repository(client: Client, repo_type: str, owner: str, name: str, create_repo: bool = False):
+def handle_repository(
+    client: Client, repo_type: str, owner: str, name: str, create_repo: bool = False,
+    create_public_repo: bool = True
+        ):
 
     if repo_type not in ['recipe', 'plugin']:
         raise click.ClickException('Repository type should be one of ["recipe", "plugin"]')
@@ -39,7 +42,7 @@ def handle_repository(client: Client, repo_type: str, owner: str, name: str, cre
 
         if create_repo:
             new_repo = RepositoryCreate(
-                public=True,
+                public=create_public_repo,
                 name=name,
             )
 
@@ -87,8 +90,15 @@ def push():
 @click.argument('path', type=click.Path(exists=True))
 @click.option('-o', '--owner', help='a pollination account name')
 @click.option('-t', '--tag', help='tag to apply to the recipe')
-@click.option('--create-repo', help='create the recipe repository if it does not exist (defaults to a public repo)', type=bool, default=False, is_flag=True)
-def recipe(path, owner, tag, create_repo):
+@click.option(
+    '--create-repo', help='create the recipe repository if it does not exist',
+    type=bool, default=False, is_flag=True)
+@click.option(
+    '--public/--private', help='Indicate if the recipe should be created a s a public or'
+    ' a private recipe. This option does not change the visibility of a recipe if it '
+    ' has already been created.', is_flag=True, default=True
+)
+def recipe(path, owner, tag, create_repo, public):
     """push a queenbee recipe to the pollination registry
 
     This subcommand pushes a packaged queenbee recipe to a registry on
@@ -115,7 +125,8 @@ def recipe(path, owner, tag, create_repo):
         repo_type='recipe',
         owner=owner,
         name=manifest.metadata.name,
-        create_repo=create_repo
+        create_repo=create_repo,
+        create_public_repo=public
     )
 
     if tag is not None:
@@ -147,8 +158,15 @@ def recipe(path, owner, tag, create_repo):
 @click.argument('path', type=click.Path(exists=True))
 @click.option('-o', '--owner', help='a pollination account name')
 @click.option('-t', '--tag', help='tag to apply to the plugin')
-@click.option('--create-repo', help='create the plugin repository if it does not exist (defaults to a public repo)', type=bool, default=False, is_flag=True)
-def plugin(path, owner, tag, create_repo):
+@click.option(
+    '--create-repo', help='create the plugin repository if it does not exist.',
+    type=bool, default=False, is_flag=True)
+@click.option(
+    '--public/--private', help='Indicate if the plugin should be created a s a public or'
+    ' a private plugin. This option does not change the visibility of a plugin if it '
+    ' has already been created.', is_flag=True, default=True
+)
+def plugin(path, owner, tag, create_repo, public):
     """push a queenbee plugin to the pollination registry
 
     This subcommand pushes a packaged queenbee plugin to a registry on
@@ -175,7 +193,8 @@ def plugin(path, owner, tag, create_repo):
         repo_type='plugin',
         owner=owner,
         name=manifest.metadata.name,
-        create_repo=create_repo
+        create_repo=create_repo,
+        create_public_repo=public
     )
 
     if tag is not None:
