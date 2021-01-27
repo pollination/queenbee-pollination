@@ -64,19 +64,19 @@ def handle_repository(
                     name=name,
                 )
 
-        # try:
-        #     if repo_type == 'recipe':
-        #         client.recipes.create_recipe(
-        #             owner=owner,
-        #             repository_create=new_repo,
-        #         )
-        #     elif repo_type == 'plugin':
-        #         client.plugins.create_plugin(
-        #             owner=owner,
-        #             repository_create=new_repo,
-        #         )
-        # except ApiException as error:
-        #     raise click.ClickException(error)
+        try:
+            if repo_type == 'recipe':
+                client.recipes.create_recipe(
+                    owner=owner,
+                    repository_create=new_repo,
+                )
+            elif repo_type == 'plugin':
+                client.plugins.create_plugin(
+                    owner=owner,
+                    repository_create=new_repo,
+                )
+        except ApiException as error:
+            raise click.ClickException(error)
 
         click.echo('Successfully created repository!')
 
