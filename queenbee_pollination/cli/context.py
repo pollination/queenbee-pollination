@@ -1,6 +1,6 @@
 from pydantic import Field
 from queenbee.base.basemodel import BaseModel
-from queenbee.config import Config as QueenbeeConfig
+from queenbee.cli.context import Context as QueenbeeContext
 
 from ..config import Config as QueenbeePollinationConfig
 from ..client import Client
@@ -8,7 +8,7 @@ from ..client import Client
 
 class Context(BaseModel):
 
-    queenbee: QueenbeeConfig = Field(
+    queenbee: QueenbeeContext = Field(
         None,
         description='The queenbee config object'
     )
@@ -19,7 +19,7 @@ class Context(BaseModel):
 
     def get_client(self) -> Client:
         self.queenbee.refresh_tokens()
-        auth_header = self.queenbee.get_auth_header(
+        auth_header = self.queenbee.config.get_auth_header(
             repository_url=self.config.endpoint
         )
 
