@@ -33,6 +33,6 @@ jobs:
       with:
         node-version: '10.x'
         registry-url: 'https://registry.npmjs.org'
-    - run: npx semantic-release
+    - run: npx semantic-release@^17.0.0
       env:
         GH_TOKEN: ${{ secrets.GH_TOKEN }}
