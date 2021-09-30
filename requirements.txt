@@ -1,4 +1,4 @@
 queenbee>=1.22.13
 pollination-sdk==0.10.17
-tabulate==0.8.7
-requests==2.24.0
+tabulate>=0.8.7
+requests>=2.24.0
