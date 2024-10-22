@@ -21,18 +21,24 @@ jobs:
     - name: Test with pytest
       run: |
         python -m pytest
+
   deploy:
     name: "Semantic Release"
     needs: test
-    if: success() && github.ref == 'refs/heads/master' && github.base_ref == ''
+    if: success() && github.ref == 'refs/heads/master' && github.base_ref == '' && github.repository_owner == 'pollination'
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: set up node
       uses: actions/setup-node@v4
       with:
         node-version: 22.2.0
+    - name: install semantic-release
+      run:
+        npm install @semantic-release/exec
     - run: npx semantic-release@^23.1.1
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PYPI_USERNAME: ${{ secrets.POLLINATION_PYPI_USERNAME }}
+        PYPI_PASSWORD: ${{ secrets.POLLINATION_PYPI_PASSWORD }}
