@@ -1,6 +1,6 @@
 # queenbee-pollination
 
-queenbee-pollination extends [queenbee](https://github.com/ladybug-tools/queenbee) in order to interact with the [Pollination API](https://api.pollination.cloud).
+queenbee-pollination extends [queenbee](https://github.com/pollination/queenbee) in order to interact with the [Pollination API](https://api.pollination.solutions).
 
 ## Installation
 
@@ -19,12 +19,12 @@ The CLI tool will authenticate to the Pollination API in one of two ways:
 
 #### Env Vars
 
-Set the following environment variable as your API token before running commands `QB_POLLINATION_TOKEN`.
+Set the following environment variable as your API token before running commands `POLLINATION_TOKEN`.
 
 Example for a bash shell:
 
 ```console
-> export QB_POLLINATION_TOKEN=<some-long-token-string>
+> export POLLINATION_TOKEN=<some-long-token-string>
 
 > queenbee pollination project simulations list --project test-project --owner ladybug-tools
 ```
