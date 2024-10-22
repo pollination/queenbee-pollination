@@ -22,5 +22,5 @@ jobs:
     - name: Publish package to TestPyPI
       run: bash deploy.sh
       env:
-        PYPI_USER: ${{ secrets.PYPI_USER }}
-        PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        PYPI_USER: ${{ secrets.POLLINATION_PYPI_PASSWORD }}
+        PYPI_PASSWORD: ${{ secrets.POLLINATION_PYPI_PASSWORD  }}

@@ -8,7 +8,7 @@ class Config(BaseSettings):
     endpoint: str = Field(
         'https://api.pollination.solutions',
         description='The API endpoint to use when making API calls',
-        env='QB_POLLINATION_ENDPOINT',
+        env='POLLINATION_ENDPOINT',
     )
 
     token: str = Field(
