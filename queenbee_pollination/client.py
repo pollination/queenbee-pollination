@@ -4,7 +4,7 @@ import pollination_sdk as sdk
 class Client(object):
     """A Pollination client designed to interact with Workflow and Simulation objects."""
 
-    def __init__(self, api_token=None, access_token=None, host='https://api.pollination.cloud'):
+    def __init__(self, api_token=None, access_token=None, host='https://api.pollination.solutions'):
         config = sdk.Configuration(
             api_key={'APIKeyAuth': api_token}
         )

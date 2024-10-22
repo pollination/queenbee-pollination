@@ -6,7 +6,7 @@ from .client import Client
 class Config(BaseSettings):
 
     endpoint: str = Field(
-        'https://api.pollination.cloud',
+        'https://api.pollination.solutions',
         description='The API endpoint to use when making API calls',
         env='QB_POLLINATION_ENDPOINT',
     )
@@ -14,7 +14,7 @@ class Config(BaseSettings):
     token: str = Field(
         None,
         description='The API token used to login to the API',
-        env='QB_POLLINATION_TOKEN'
+        env='POLLINATION_TOKEN'
     )
 
     jwt_token: str = Field(
