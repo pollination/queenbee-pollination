@@ -3,7 +3,6 @@ import shutil
 
 from queenbee.recipe import Recipe
 from queenbee.plugin import Plugin
-from queenbee.repository.package import PackageVersion
 
 from pollination_sdk.exceptions import ApiException
 
