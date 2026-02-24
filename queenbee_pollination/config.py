@@ -1,4 +1,6 @@
-from pydantic import BaseSettings, Field
+from typing import Optional
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 from .client import Client
 
@@ -6,19 +8,19 @@ from .client import Client
 class Config(BaseSettings):
 
     endpoint: str = Field(
-        'https://api.pollination.solutions',
+        default='https://api.pollination.solutions',
         description='The API endpoint to use when making API calls',
-        env='POLLINATION_ENDPOINT',
+        validation_alias='POLLINATION_ENDPOINT',
     )
 
-    token: str = Field(
-        None,
+    token: Optional[str] = Field(
+        default=None,
         description='The API token used to login to the API',
-        env='POLLINATION_TOKEN'
+        validation_alias='POLLINATION_TOKEN'
     )
 
-    jwt_token: str = Field(
-        None,
+    jwt_token: Optional[str] = Field(
+        default=None,
         description='The JWT token used too authenticate to the API',
     )
 

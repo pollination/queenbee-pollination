@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import Field
 from queenbee.base.basemodel import BaseModel
 from queenbee.cli.context import Context as QueenbeeContext
@@ -8,7 +9,7 @@ from ..client import Client
 
 class Context(BaseModel):
 
-    queenbee: QueenbeeContext = Field(
+    queenbee: Optional[QueenbeeContext] = Field(
         None,
         description='The queenbee config object'
     )

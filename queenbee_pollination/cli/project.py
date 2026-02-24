@@ -1,8 +1,6 @@
 import os
 from concurrent.futures import ThreadPoolExecutor as PoolExecutor
 from multiprocessing import cpu_count
-import tarfile
-from urllib3.exceptions import ProtocolError
 from typing import List
 
 import requests
